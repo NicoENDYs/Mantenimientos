@@ -92,4 +92,9 @@ async function notifications(request, reply) {
   return reply.send(items)
 }
 
-module.exports = { list, detail, create, update, approve, reject, uploadPhotos, servePhoto, deletePhoto, notifications }
+async function stats(request, reply) {
+  const data = await svc.getStats(request.user.id, request.user.rol)
+  return reply.send(data)
+}
+
+module.exports = { list, detail, create, update, approve, reject, uploadPhotos, servePhoto, deletePhoto, notifications, stats }

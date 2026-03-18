@@ -365,4 +365,19 @@ async function getNotifications(userId) {
   return rows
 }
 
-module.exports = { findAll, findById, create, update, approve, reject, getPhotoFile, addPhotos, deletePhoto, getNotifications }
+async function getStats(userId, userRol) {
+  const isAdmin = ['supervisor', 'admin'].includes(userRol)
+  const { rows } = await pool.query(`
+    SELECT estado, COUNT(*)::int AS total
+    FROM maintenances
+    ${isAdmin ? '' : 'WHERE user_id = $1'}
+    GROUP BY estado
+  `, isAdmin ? [] : [userId])
+
+  const base = { borrador: 0, pendiente_aprobacion: 0, aprobado: 0, rechazado: 0 }
+  rows.forEach(r => { base[r.estado] = r.total })
+  base.total = Object.values(base).reduce((a, b) => a + b, 0)
+  return base
+}
+
+module.exports = { findAll, findById, create, update, approve, reject, getPhotoFile, addPhotos, deletePhoto, getNotifications, getStats }

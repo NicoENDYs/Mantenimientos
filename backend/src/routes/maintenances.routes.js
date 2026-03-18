@@ -29,6 +29,9 @@ async function maintenancesRoutes(fastify) {
   // GET /api/maintenances/notifications
   fastify.get('/notifications', { handler: ctrl.notifications })
 
+  // GET /api/maintenances/stats
+  fastify.get('/stats', { handler: ctrl.stats })
+
   // GET /api/maintenances/:id
   fastify.get('/:id', { handler: ctrl.detail })
 
