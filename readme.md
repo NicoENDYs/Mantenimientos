@@ -380,6 +380,78 @@ VITE_API_BASE_URL=http://localhost:3000
 
 ---
 
+## Docker
+
+### Estructura
+
+```
+sigman/
+├── docker-compose.yml
+├── .env                  # variables reales (NO se sube al repo)
+├── .env.example          # plantilla de variables (sí se sube)
+└── docker/
+    ├── backend.Dockerfile
+    ├── frontend.Dockerfile
+    └── nginx.conf
+```
+
+### Servicios
+
+| Servicio | Imagen base | Puerto expuesto |
+|----------|------------|----------------|
+| `postgres` | postgres:16-alpine | solo red interna |
+| `backend` | node:22-slim | solo red interna |
+| `frontend` | nginx:alpine | 80 (exterior) |
+
+El único punto de entrada desde el exterior es **Nginx en el puerto 80**. Nginx sirve el build estático del frontend y hace proxy de `/api/*` hacia el backend internamente — el browser nunca habla directo con Node.js.
+
+### Variables de entorno
+
+Copiá la plantilla y completá los valores reales:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Descripción |
+|----------|-------------|
+| `DB_NAME` | Nombre de la base de datos |
+| `DB_USER` | Usuario de PostgreSQL |
+| `DB_PASS` | Contraseña de PostgreSQL |
+| `JWT_SECRET` | Secreto para firmar JWT (mínimo 32 caracteres) |
+| `FRONTEND_ORIGIN` | URL desde donde el browser accede al frontend (ej. `http://localhost`) |
+
+### Comandos Docker
+
+```bash
+# Primera vez: construye las imágenes y levanta los 3 servicios
+docker compose up --build
+
+# Próximas veces
+docker compose up
+
+# En segundo plano
+docker compose up -d
+
+# Ver logs
+docker compose logs -f
+
+# Bajar los servicios
+docker compose down
+
+# Bajar y borrar volúmenes (⚠️ elimina datos de BD y fotos)
+docker compose down -v
+```
+
+### Notas importantes
+
+- El **schema SQL se aplica automáticamente** la primera vez que arranca el container de postgres (via `/docker-entrypoint-initdb.d/`). Si el volumen ya existe, no se vuelve a ejecutar.
+- Para cargar datos de prueba después del primer arranque: `docker compose exec backend node src/db/seed.js`
+- Las **fotos subidas** se guardan en el volumen `photos_data` — sobreviven reinicios del container.
+- `sharp` (procesamiento de imágenes) requiere `node:22-slim` (Debian). No usar Alpine para el backend.
+
+---
+
 ## Comandos
 
 ### Backend

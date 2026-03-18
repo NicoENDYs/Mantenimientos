@@ -1,0 +1,79 @@
+services:
+
+  # ─────────────────────────────────────────
+  # BASE DE DATOS
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      # Datos persistentes: aunque reinicies el container, los datos no se pierden
+      - postgres_data:/var/lib/postgresql/data
+      # Al arrancar por primera vez, PostgreSQL ejecuta automáticamente
+      # todos los .sql que encuentre en esta carpeta
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      # Docker espera que este comando devuelva 0 antes de marcar el servicio como "healthy"
+      # El backend no arrancará hasta que esto pase
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sigman"]
+      interval: 5s    # intenta cada 5 segundos
+      timeout: 5s     # si tarda más de 5s, cuenta como fallo
+      retries: 5      # tras 5 fallos seguidos, el servicio queda "unhealthy"
+
+  # ─────────────────────────────────────────
+  # BACKEND (Node.js + Fastify)
+  # ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend                        # Docker empaqueta la carpeta backend/
+      dockerfile: ../docker/backend.Dockerfile  # pero usa este Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy  # espera el healthcheck de postgres antes de arrancar
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres   # nombre del servicio de arriba — Docker resuelve esto como IP interna
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 2h
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}  # URL desde donde el browser accede al frontend
+      PHOTOS_DIR: /app/private/photos    # ruta dentro del container
+    volumes:
+      # Las fotos subidas se guardan aquí — volumen persistente para no perderlas
+      - photos_data:/app/private/photos
+    # El backend NO expone puerto al host directamente.
+    # Nginx (frontend) se comunica con él por la red interna de Docker.
+
+  # ─────────────────────────────────────────
+  # FRONTEND (React build) + NGINX (servidor)
+  # ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      args:
+        # Esta variable se "hornea" en el bundle de Vite durante el build.
+        # Como Nginx hace proxy /api → backend:3000 de forma interna,
+        # el browser solo ve su propio origen — por eso es una ruta relativa.
+        VITE_API_URL: ""
+    restart: unless-stopped
+    ports:
+      - "80:80"  # único servicio expuesto al exterior
+    depends_on:
+      - backend
+
+# ─────────────────────────────────────────
+# VOLÚMENES PERSISTENTES
+# ─────────────────────────────────────────
+volumes:
+  postgres_data:  # datos de PostgreSQL
+  photos_data:    # fotos subidas por los técnicos

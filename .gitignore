@@ -2,6 +2,7 @@
 node_modules/
 
 # ─── Variables de entorno ─────────────────────────────────────
+# .env.example SÍ se sube al repo (es la plantilla sin valores reales)
 .env
 .env.local
 .env.*.local
