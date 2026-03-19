@@ -130,14 +130,14 @@ Si el mantenimiento fue rechazado:
 
 ## Roles y permisos
 
-| Acción              | tecnico  | supervisor |  admin  |
-|--------             |--------- |--------  --| ------- |
-| Crear mantenimiento |    ✅   |    ✅      |   ✅   |
-| Ver propios         |    ✅   |    ✅      |   ✅   |
-| Ver todos           |    ❌   |    ✅      |   ✅   |
-| Aprobar/rechazar    |    ❌   |    ✅      |   ✅   |
-| Exportar reportes   |    ❌   |    ✅      |   ✅   |
-| Gestionar usuarios  |    ❌   |    ❌      |   ✅   |
+| Acción| tecnico | supervisor | admin |
+|--------|---------|----------|------- |
+| Crear mantenimiento |✅|✅|✅|
+| Ver propios|✅|✅|✅|
+| Ver todos|❌|✅|✅|
+| Aprobar/rechazar|❌|✅|✅|
+| Exportar reportes|❌|✅|✅|
+| Gestionar usuarios|❌|❌|✅|
 
 ---
 
