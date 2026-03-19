@@ -75,4 +75,12 @@ async function toggle(id) {
   return rows[0] || null
 }
 
-module.exports = { findAll, findById, create, update, toggle }
+async function unlock(id) {
+  const { rows } = await pool.query(
+    'UPDATE users SET login_intentos = 0 WHERE id = $1 RETURNING id, nombre, activo, login_intentos',
+    [id]
+  )
+  return rows[0] || null
+}
+
+module.exports = { findAll, findById, create, update, toggle, unlock }

@@ -46,6 +46,15 @@ export default function UsersPage() {
     }
   }
 
+  async function handleUnlock(id) {
+    try {
+      await api.patch(`/users/${id}/unlock`)
+      fetchUsers()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al desbloquear usuario')
+    }
+  }
+
   return (
     <Layout>
       <div className="flex items-center justify-between mb-6">
@@ -114,6 +123,19 @@ export default function UsersPage() {
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                 {u.activo ? 'Activo' : 'Inactivo'}
               </span>
+              {u.login_intentos >= 5 && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                  Bloqueado
+                </span>
+              )}
+              {u.login_intentos >= 5 && (
+                <button
+                  onClick={() => handleUnlock(u.id)}
+                  className="text-xs border border-orange-300 text-orange-700 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition"
+                >
+                  Desbloquear
+                </button>
+              )}
               <button
                 onClick={() => handleToggle(u.id)}
                 className="text-xs border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"

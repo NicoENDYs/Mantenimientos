@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import Layout from '../components/Layout'
 import StatusBadge from '../components/StatusBadge'
 import { useAuth } from '../context/AuthContext'
@@ -11,13 +11,14 @@ const PAGE_LIMIT = 20
 
 export default function MaintenanceListPage() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const [items, setItems]         = useState([])
   const [total, setTotal]         = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage]           = useState(1)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
-  const [filters, setFilters]     = useState({ asset_code: '', estado: '', fecha_desde: '', fecha_hasta: '' })
+  const [filters, setFilters]     = useState({ asset_code: '', estado: searchParams.get('estado') ?? '', fecha_desde: '', fecha_hasta: '' })
   const [rejectModal, setRejectModal] = useState(null) // { id }
   const [rejectComment, setRejectComment] = useState('')
   const [dateRangeError, setDateRangeError] = useState('')

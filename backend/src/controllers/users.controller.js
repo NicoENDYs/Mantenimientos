@@ -24,4 +24,10 @@ async function toggle(request, reply) {
   return reply.send(user)
 }
 
-module.exports = { list, create, update, toggle }
+async function unlock(request, reply) {
+  const user = await usersService.unlock(parseInt(request.params.id, 10))
+  if (!user) return reply.code(404).send({ message: 'Usuario no encontrado' })
+  return reply.send(user)
+}
+
+module.exports = { list, create, update, toggle, unlock }

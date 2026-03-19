@@ -52,6 +52,12 @@ async function usersRoutes(fastify) {
     config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     handler: usersCtrl.toggle,
   })
+
+  // PATCH /api/users/:id/unlock
+  fastify.patch('/:id/unlock', {
+    config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    handler: usersCtrl.unlock,
+  })
 }
 
 module.exports = usersRoutes
