@@ -68,6 +68,29 @@ async function maintenancesRoutes(fastify) {
   // PUT /api/maintenances/:id
   fastify.put('/:id', {
     config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    schema: {
+      body: {
+        type: 'object',
+        required: ['motivo', 'descripcion_problema', 'solucion'],
+        properties: {
+          motivo:               { type: 'string', minLength: 1, maxLength: 500 },
+          descripcion_problema: { type: 'string', minLength: 1, maxLength: 5000 },
+          solucion:             { type: 'string', minLength: 1, maxLength: 5000 },
+          hubo_cambio:          { type: 'boolean' },
+          partes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['descripcion', 'cantidad'],
+              properties: {
+                descripcion: { type: 'string', minLength: 1 },
+                cantidad:    { type: 'integer', minimum: 1 },
+              },
+            },
+          },
+        },
+      },
+    },
     handler: ctrl.update,
   })
 

@@ -16,7 +16,7 @@ async function authenticate(request, reply) {
   try {
     await request.jwtVerify() // verifica Authorization: Bearer <token>
   } catch {
-    reply.code(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Token inválido o expirado' })
+    return reply.code(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Token inválido o expirado' })
   }
 }
 

@@ -1,11 +1,13 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { MAX_FOTOS, MAX_FILE_SIZE } from '../constants'
 
-const MAX_FILES  = 5
-const MAX_SIZE   = 5 * 1024 * 1024 // 5 MB
+const MAX_FILES  = MAX_FOTOS
+const MAX_SIZE   = MAX_FILE_SIZE
 const ALLOWED    = ['image/jpeg', 'image/png', 'image/webp']
 
 export default function PhotoUpload({ files, onChange }) {
   const inputRef = useRef()
+  const [photoErrors, setPhotoErrors] = useState([])
 
   function handleChange(e) {
     const selected = Array.from(e.target.files)
@@ -17,7 +19,7 @@ export default function PhotoUpload({ files, onChange }) {
       return true
     })
 
-    if (errors.length) alert(errors.join('\n'))
+    setPhotoErrors(errors)
 
     const combined = [...files, ...valid].slice(0, MAX_FILES)
     onChange(combined)
@@ -58,7 +60,12 @@ export default function PhotoUpload({ files, onChange }) {
           </button>
         )}
       </div>
-      <p className="text-xs text-gray-400">{files.length}/{MAX_FILES} fotos · JPG, PNG, WEBP · máx 5 MB c/u</p>
+      {photoErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 mt-2 space-y-0.5">
+          {photoErrors.map((e, i) => <p key={i}>{e}</p>)}
+        </div>
+      )}
+      <p className="text-xs text-gray-400 mt-1">{files.length}/{MAX_FILES} fotos · JPG, PNG, WEBP · máx 5 MB c/u</p>
       <input
         ref={inputRef}
         type="file"

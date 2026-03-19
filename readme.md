@@ -29,7 +29,10 @@ SIGMAN es una aplicación web full-stack para gestionar el ciclo completo de man
 ```
 sigman/
 ├── backend/
-|   ├── private/photos/
+|   ├── private/
+|   |   ├── photos/        ← fotos subidas (UUID)
+|   |   └── logs/
+|   |       └── app.log    ← logs del servidor (generado automáticamente)
 │   └── src/
 │       ├── server.js
 │       ├── app.js
@@ -191,8 +194,8 @@ access_logs
 ### Reportes
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | /api/reports/excel | Exportar Excel con filtros |
-| GET | /api/reports/pdf | Exportar PDF con filtros |
+| GET | /api/reports/excel | Exportar Excel con filtros. Params opcionales: `fecha_desde`, `fecha_hasta` (formato ISO 8601: `YYYY-MM-DD` o `YYYY-MM-DDTHH:mm:ssZ`), `estado`, `user_id`, `asset_code` |
+| GET | /api/reports/pdf | Exportar PDF con filtros. Mismos params que Excel |
 | GET | /api/reports/history/:assetCode | Historial de un activo |
 
 ### Activos
@@ -214,10 +217,10 @@ access_logs
 ## Archivos del backend
 
 ### `src/server.js`
-Punto de entrada. Importa `app.js`, llama a `fastify.listen()` en el puerto configurado (default 3000).
+Punto de entrada. Importa `app.js`, llama a `fastify.listen()` en el puerto configurado (default 3000). Configura el logger de Pino: en desarrollo imprime pretty-print en consola **y** escribe JSON en `private/logs/app.log`; en producción solo escribe en el archivo. El directorio de logs se crea automáticamente si no existe.
 
 ### `src/app.js`
-Configura la instancia de Fastify: registra todos los plugins, monta las rutas bajo `/api/*`, exporta la app para server.js.
+Configura la instancia de Fastify: registra todos los plugins, monta las rutas bajo `/api/*`, exporta la app para server.js. En desarrollo (`NODE_ENV !== 'production'`) también registra Swagger UI accesible en `/docs`. El manejador global de errores incluye `requestId` en todas las respuestas de error para facilitar la correlación con los logs del servidor.
 
 ### `src/plugins/`
 
@@ -225,7 +228,7 @@ Configura la instancia de Fastify: registra todos los plugins, monta las rutas b
 |---------|-----------|
 | `cookie.js` | Habilita lectura/escritura de cookies con `@fastify/cookie` |
 | `cors.js` | Configura CORS para el origen del frontend |
-| `helmet.js` | Agrega cabeceras de seguridad HTTP, incluyendo CSP configurado con directivas específicas para la app (ver sección Seguridad) |
+| `helmet.js` | Agrega cabeceras de seguridad HTTP, incluyendo CSP configurado con directivas específicas para la app y HSTS (`maxAge: 1 año, includeSubDomains`) activo en producción (ver sección Seguridad) |
 | `jwt.js` | Registra `@fastify/jwt` con el secreto del `.env` |
 | `multipart.js` | Habilita subida de archivos con `@fastify/multipart` |
 | `rateLimit.js` | Configura `@fastify/rate-limit` en modo `global: false`. El límite se aplica por ruta explícitamente: 5 req/min en `/login`; 20–30 req/min en todas las rutas de escritura (POST, PUT, PATCH, DELETE) de mantenimientos y usuarios. |
@@ -266,7 +269,7 @@ Contienen toda la lógica de negocio y acceso a base de datos.
 |---------|-----------|
 | `authenticate.js` | Extrae y verifica el JWT desde cookie o header `Authorization` |
 | `authorize.js` | Verifica que el rol del usuario tenga permiso para la ruta |
-| `validateMime.js` | Valida que los archivos subidos sean imágenes válidas (jpg/png/webp) |
+| `validateMime.js` | Valida que los archivos subidos sean imágenes válidas (jpg/png/webp) usando `fileTypeFromBuffer()` del paquete `file-type` para detectar el tipo real por magic bytes |
 
 ### `src/db/`
 
@@ -284,7 +287,7 @@ Directorio donde se almacenan las fotos subidas, con nombres UUID para evitar co
 ## Archivos del frontend
 
 ### `src/main.jsx`
-Monta la aplicación React en el DOM. Envuelve todo en `<BrowserRouter>` y `<AuthProvider>`.
+Monta la aplicación React en el DOM. Envuelve todo en `<ErrorBoundary>`, `<BrowserRouter>` y `<AuthProvider>`. El `ErrorBoundary` captura errores de render no controlados y muestra una pantalla de fallback con botón de recarga en lugar de dejar la app en blanco.
 
 ### `src/App.jsx`
 Define todas las rutas con `react-router-dom`. Envuelve rutas protegidas en `<ProtectedRoute>`.
@@ -323,6 +326,7 @@ Hook personalizado que carga imágenes protegidas convirtiendo la URL a un blob 
 | `AuthImage.jsx` | Renderiza una imagen que requiere autenticación usando `useAuthImage` |
 | `Button.jsx` | Componente de botón reutilizable con variantes (`primary`, `secondary`, `danger`, `success`, `ghost`), tamaños (`sm`, `md`, `lg`) y soporte para íconos |
 | `StatusBadge.jsx` | Badge de color con ícono según el estado del mantenimiento (`pendiente_aprobacion`, `aprobado`, `rechazado`) |
+| `ErrorBoundary.jsx` | Class component que captura errores de render en cualquier componente hijo y muestra una pantalla de fallback con botón de recarga |
 
 ---
 
@@ -369,7 +373,7 @@ DB_NAME=sigman
 DB_USER=postgres
 DB_PASS=secret
 PORT=3000
-NODE_ENV=development
+NODE_ENV=development   # development | production
 JWT_SECRET=clave_muy_secreta
 JWT_EXPIRES_IN=8h
 PHOTOS_DIR=./private/photos
@@ -391,6 +395,8 @@ npm run dev      # Inicia con nodemon (recarga automática)
 npm start        # Producción
 npm run seed     # Poblar la base de datos con datos de prueba
 ```
+
+> En desarrollo, la documentación interactiva de la API está disponible en `http://localhost:3000/docs` (Swagger UI). En producción queda deshabilitada automáticamente.
 
 ### Frontend
 ```bash
@@ -422,10 +428,14 @@ npm run preview  # Previsualizar el build
   worker-src  'self' blob:             ← html5-qrcode usa Web Workers
   ```
 - **Helmet**: demás cabeceras HTTP de seguridad (X-Frame-Options, X-Content-Type-Options, etc.).
+- **HSTS**: `Strict-Transport-Security` con `maxAge: 31536000` e `includeSubDomains` habilitado en producción. Previene downgrade attacks (SSLstrip).
 - **CORS**: solo acepta peticiones del origen configurado en `FRONTEND_ORIGIN`.
 - **RBAC**: cada endpoint verifica el rol antes de ejecutar la lógica.
-- **Validación MIME**: las fotos son verificadas por magic bytes, no solo extensión (jpg/png/webp).
+- **Validación MIME**: las fotos son verificadas por magic bytes con `file-type`, no solo por extensión (jpg/png/webp).
 - **Fotos privadas**: servidas solo con sesión válida, nunca expuestas como estáticas.
 - **Bcrypt**: passwords hasheadas con bcryptjs (SALT_ROUNDS = 12) antes de guardar.
 - **Bloqueo de cuenta**: tras 5 intentos fallidos de login consecutivos, la cuenta queda bloqueada.
 - **Access logs**: tabla `access_logs` registra logins y acciones relevantes con IP y resultado.
+- **Protección path traversal**: al servir fotos, el servidor verifica que el path resuelto esté dentro del directorio `PHOTOS_DIR` antes de abrir el archivo.
+- **Validación de fechas en reportes**: los parámetros `fecha_desde` y `fecha_hasta` son validados contra el formato ISO 8601 antes de ejecutar la query; se devuelve 400 si el formato es incorrecto.
+- **Request ID en errores**: todas las respuestas de error incluyen `requestId` para correlacionar con los logs del servidor (`private/logs/app.log`).

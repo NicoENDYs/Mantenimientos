@@ -2,8 +2,7 @@
 
 const bcryptjs = require('bcryptjs')
 const pool = require('../db/pool')
-
-const MAX_INTENTOS = 5
+const { MAX_INTENTOS_LOGIN: MAX_INTENTOS } = require('../constants')
 
 async function logAcceso(userId, ip, accion, resultado) {
   await pool.query(

@@ -1,6 +1,7 @@
 'use strict'
 
 const { Pool } = require('pg')
+const logger   = require('pino')()
 
 const pool = new Pool({
   host:     process.env.DB_HOST,
@@ -11,7 +12,7 @@ const pool = new Pool({
 })
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client', err)
+  logger.error({ err }, 'Unexpected error on idle PostgreSQL client')
   process.exit(1)
 })
 

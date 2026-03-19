@@ -9,11 +9,11 @@ async function list(request, reply) {
 
 async function detail(request, reply) {
   const item = await svc.findById(parseInt(request.params.id, 10))
-  if (!item) return reply.code(404).send({ message: 'Mantenimiento no encontrado' })
+  if (!item) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Mantenimiento no encontrado' })
 
   // Técnico solo puede ver los suyos
   if (request.user.rol === 'tecnico' && item.user_id !== request.user.id) {
-    return reply.code(403).send({ message: 'No tienes acceso a este mantenimiento' })
+    return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'No tienes acceso a este mantenimiento' })
   }
   return reply.send(item)
 }

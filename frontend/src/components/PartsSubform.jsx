@@ -15,13 +15,18 @@ export default function PartsSubform({ parts, onChange }) {
     <div className="space-y-2">
       {parts.map((part, i) => (
         <div key={i} className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Descripción de la pieza"
-            value={part.descripcion}
-            onChange={(e) => update(i, 'descripcion', e.target.value)}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Descripción de la pieza"
+              value={part.descripcion}
+              onChange={(e) => update(i, 'descripcion', e.target.value)}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${!part.descripcion.trim() ? 'border-red-400' : 'border-gray-300'}`}
+            />
+            {!part.descripcion.trim() && (
+              <p className="text-red-500 text-xs mt-0.5">Descripción requerida</p>
+            )}
+          </div>
           <input
             type="number"
             min="1"

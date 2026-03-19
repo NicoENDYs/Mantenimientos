@@ -34,7 +34,7 @@ async function me(request, reply) {
   )
   if (!rows[0]) {
     reply.clearCookie('token', { path: '/' })
-    return reply.code(401).send({ message: 'Sesión inválida' })
+    return reply.code(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Sesión inválida' })
   }
   return reply.send({ user: rows[0] })
 }

@@ -32,6 +32,18 @@ async function usersRoutes(fastify) {
   // PUT /api/users/:id
   fastify.put('/:id', {
     config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    schema: {
+      body: {
+        type: 'object',
+        required: ['nombre', 'email'],
+        properties: {
+          nombre:   { type: 'string', minLength: 1, maxLength: 100 },
+          email:    { type: 'string', format: 'email' },
+          password: { type: 'string', minLength: 8 },
+          rol:      { type: 'string', enum: ['tecnico', 'supervisor', 'admin'] },
+        },
+      },
+    },
     handler: usersCtrl.update,
   })
 

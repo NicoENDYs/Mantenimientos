@@ -20,13 +20,21 @@ export default function MaintenanceListPage() {
   const [filters, setFilters]     = useState({ asset_code: '', estado: '', fecha_desde: '', fecha_hasta: '' })
   const [rejectModal, setRejectModal] = useState(null) // { id }
   const [rejectComment, setRejectComment] = useState('')
+  const [dateRangeError, setDateRangeError] = useState('')
 
   function handleFilterChange(key, value) {
     setPage(1)
-    setFilters(f => ({ ...f, [key]: value }))
+    const newFilters = { ...filters, [key]: value }
+    if (newFilters.fecha_desde && newFilters.fecha_hasta && newFilters.fecha_desde > newFilters.fecha_hasta) {
+      setDateRangeError('La fecha "desde" no puede ser mayor que "hasta"')
+    } else {
+      setDateRangeError('')
+    }
+    setFilters(newFilters)
   }
 
   const fetchItems = useCallback(async () => {
+    if (dateRangeError) return
     setLoading(true)
     setError('')
     try {
@@ -42,7 +50,7 @@ export default function MaintenanceListPage() {
     } finally {
       setLoading(false)
     }
-  }, [filters, page])
+  }, [filters, page, dateRangeError])
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
@@ -51,7 +59,7 @@ export default function MaintenanceListPage() {
       await api.patch(`/maintenances/${id}/approve`)
       fetchItems()
     } catch (err) {
-      alert(err.response?.data?.message || 'Error al aprobar')
+      setError(err.response?.data?.message || 'Error al aprobar')
     }
   }
 
@@ -63,7 +71,8 @@ export default function MaintenanceListPage() {
       setRejectComment('')
       fetchItems()
     } catch (err) {
-      alert(err.response?.data?.message || 'Error al rechazar')
+      setError(err.response?.data?.message || 'Error al rechazar')
+      setRejectModal(null)
     }
   }
 
@@ -105,6 +114,9 @@ export default function MaintenanceListPage() {
         />
       </div>
 
+      {dateRangeError && (
+        <p className="text-red-600 text-sm mb-2">{dateRangeError}</p>
+      )}
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
       {loading && <p className="text-gray-500 text-sm mb-4">Cargando...</p>}
 
