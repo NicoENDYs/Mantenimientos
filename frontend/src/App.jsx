@@ -10,6 +10,7 @@ import MaintenanceDetailPage  from './pages/MaintenanceDetailPage'
 import EditMaintenancePage    from './pages/EditMaintenancePage'
 import ReportsPage            from './pages/ReportsPage'
 import UsersPage              from './pages/UsersPage'
+import ProfilePage            from './pages/ProfilePage'
 
 export default function App() {
   const { loading } = useAuth()
@@ -66,6 +67,12 @@ export default function App() {
       <Route path="/users" element={
         <ProtectedRoute roles={['admin']}>
           <UsersPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <ProfilePage />
         </ProtectedRoute>
       } />
 

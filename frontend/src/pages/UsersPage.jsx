@@ -6,11 +6,16 @@ import api from '../api/axiosInstance'
 const ROL_LABEL = { tecnico: 'Técnico', supervisor: 'Supervisor', admin: 'Administrador' }
 
 export default function UsersPage() {
-  const [users, setUsers]     = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [users, setUsers]       = useState([])
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [pwModal, setPwModal]   = useState(null) // { id, nombre }
+  const [pwError, setPwError]   = useState('')
+  const [pwSuccess, setPwSuccess] = useState('')
+
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm()
+  const { register: regPw, handleSubmit: handlePw, reset: resetPw, formState: { isSubmitting: pwSubmitting } } = useForm()
 
   async function fetchUsers() {
     setLoading(true)
@@ -52,6 +57,25 @@ export default function UsersPage() {
       fetchUsers()
     } catch (err) {
       setError(err.response?.data?.message || 'Error al desbloquear usuario')
+    }
+  }
+
+  function openPwModal(u) {
+    setPwModal(u)
+    setPwError('')
+    setPwSuccess('')
+    resetPw()
+  }
+
+  async function onChangePassword(data) {
+    setPwError('')
+    setPwSuccess('')
+    try {
+      await api.put(`/users/${pwModal.id}`, { nombre: pwModal.nombre, password: data.newPassword })
+      setPwSuccess('Contraseña actualizada')
+      resetPw()
+    } catch (err) {
+      setPwError(err.response?.data?.message || 'Error al cambiar contraseña')
     }
   }
 
@@ -113,36 +137,72 @@ export default function UsersPage() {
 
       <div className="space-y-2">
         {users.map(u => (
-          <div key={u.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-gray-800">{u.nombre}</p>
-              <p className="text-sm text-gray-500">{u.email}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{ROL_LABEL[u.rol]}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {u.activo ? 'Activo' : 'Inactivo'}
-              </span>
-              {u.login_intentos >= 5 && (
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                  Bloqueado
+          <div key={u.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-gray-800">{u.nombre}</p>
+                <p className="text-sm text-gray-500">{u.email}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{ROL_LABEL[u.rol]}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {u.activo ? 'Activo' : 'Inactivo'}
                 </span>
-              )}
-              {u.login_intentos >= 5 && (
+                {u.login_intentos >= 5 && (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                    Bloqueado
+                  </span>
+                )}
+                {u.login_intentos >= 5 && (
+                  <button
+                    onClick={() => handleUnlock(u.id)}
+                    className="text-xs border border-orange-300 text-orange-700 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition"
+                  >
+                    Desbloquear
+                  </button>
+                )}
                 <button
-                  onClick={() => handleUnlock(u.id)}
-                  className="text-xs border border-orange-300 text-orange-700 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition"
+                  onClick={() => openPwModal(u)}
+                  className="text-xs border border-blue-300 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
                 >
-                  Desbloquear
+                  Cambiar contraseña
                 </button>
-              )}
-              <button
-                onClick={() => handleToggle(u.id)}
-                className="text-xs border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
-              >
-                {u.activo ? 'Desactivar' : 'Activar'}
-              </button>
+                <button
+                  onClick={() => handleToggle(u.id)}
+                  className="text-xs border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+                >
+                  {u.activo ? 'Desactivar' : 'Activar'}
+                </button>
+              </div>
             </div>
+
+            {/* Panel inline cambio de contraseña */}
+            {pwModal?.id === u.id && (
+              <form onSubmit={handlePw(onChangePassword)}
+                className="border-t border-gray-100 pt-3 flex flex-col sm:flex-row sm:items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Nueva contraseña para {u.nombre}</label>
+                  <input
+                    type="password"
+                    {...regPw('newPassword', { required: 'Requerida', minLength: { value: 8, message: 'Mín. 8 caracteres' } })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nueva contraseña"
+                  />
+                  {pwError   && <p className="text-red-600 text-xs mt-1">{pwError}</p>}
+                  {pwSuccess  && <p className="text-green-600 text-xs mt-1">{pwSuccess}</p>}
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={pwSubmitting}
+                    className="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
+                    {pwSubmitting ? 'Guardando...' : 'Guardar'}
+                  </button>
+                  <button type="button" onClick={() => setPwModal(null)}
+                    className="text-xs border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         ))}
       </div>

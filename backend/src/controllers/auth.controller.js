@@ -50,4 +50,10 @@ async function recoverPassword(request, reply) {
   return reply.send({ message: 'Si el correo existe, recibirás instrucciones para restablecer tu contraseña.' })
 }
 
-module.exports = { login, me, logout, recoverPassword }
+async function changePassword(request, reply) {
+  const { currentPassword, newPassword } = request.body
+  await authService.changePassword(request.user.id, currentPassword, newPassword)
+  return reply.send({ message: 'Contraseña actualizada correctamente' })
+}
+
+module.exports = { login, me, logout, recoverPassword, changePassword }

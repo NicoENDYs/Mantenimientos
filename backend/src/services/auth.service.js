@@ -61,6 +61,28 @@ async function login(email, password, ip) {
   return { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol }
 }
 
+async function changePassword(userId, currentPassword, newPassword) {
+  const { rows } = await pool.query(
+    'SELECT password_hash FROM users WHERE id = $1 AND activo = true',
+    [userId]
+  )
+  if (!rows[0]) {
+    const err = new Error('Usuario no encontrado')
+    err.statusCode = 404
+    throw err
+  }
+
+  const valid = await bcryptjs.compare(currentPassword, rows[0].password_hash)
+  if (!valid) {
+    const err = new Error('La contraseña actual es incorrecta')
+    err.statusCode = 400
+    throw err
+  }
+
+  const newHash = await bcryptjs.hash(newPassword, 12)
+  await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId])
+}
+
 async function recoverPassword(email) {
   const { rows } = await pool.query('SELECT id FROM users WHERE email = $1 AND activo = true', [email])
   if (rows.length === 0) return // No revelar si el email existe

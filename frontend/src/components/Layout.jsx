@@ -65,12 +65,12 @@ export default function Layout({ children }) {
 
             {/* Usuario + Salir escritorio */}
             <div className="hidden md:flex items-center gap-3">
-              <div className="flex items-center gap-2">
+              <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition">
                 <span className="text-sm text-blue-100">{user?.nombre}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROL_COLOR[user?.rol]}`}>
                   {ROL_LABEL[user?.rol]}
                 </span>
-              </div>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition"
@@ -115,12 +115,12 @@ export default function Layout({ children }) {
               ))}
             </div>
             <div className="px-4 py-3 border-t border-blue-700 flex items-center justify-between">
-              <div>
+              <Link to="/profile" onClick={() => setMenuOpen(false)} className="hover:opacity-80 transition">
                 <p className="text-sm text-white font-medium">{user?.nombre}</p>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROL_COLOR[user?.rol]}`}>
                   {ROL_LABEL[user?.rol]}
                 </span>
-              </div>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-sm font-medium transition"
