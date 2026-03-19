@@ -1,0 +1,12 @@
+# Dependencias — se reinstalan dentro del container con npm install
+node_modules/
+
+# Variables de entorno reales — nunca deben entrar a la imagen
+.env
+
+# Fotos subidas — se manejan con un volumen de Docker, no dentro de la imagen
+private/photos/
+
+# Archivos de desarrollo
+*.log
+npm-debug.log*

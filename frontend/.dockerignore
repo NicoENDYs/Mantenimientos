@@ -1,0 +1,13 @@
+# Dependencias — se reinstalan dentro del container
+node_modules/
+
+# Build anterior — se regenera dentro del container con vite build
+dist/
+
+# Variables de entorno reales
+.env
+.env.local
+
+# Archivos de desarrollo
+*.log
+npm-debug.log*
