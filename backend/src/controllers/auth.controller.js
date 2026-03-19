@@ -6,11 +6,10 @@ const IS_PROD = process.env.NODE_ENV === 'production'
 
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure:   IS_PROD,          // solo HTTPS en producción
-  sameSite: 'strict',
+  secure:   IS_PROD,
+  sameSite: IS_PROD ? 'none' : 'strict',  // 'none' requerido para cross-origin en producción
   path:     '/',
-  // maxAge en segundos — debe coincidir con JWT_EXPIRES_IN
-  maxAge:   8 * 60 * 60,      // 8 horas
+  maxAge:   8 * 60 * 60,
 }
 
 async function login(request, reply) {

@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // Se crea una instancia base; el token se inyecta en cada request via interceptor
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,   // envía la cookie httpOnly en cada request
 })
