@@ -19,7 +19,7 @@ async function seed() {
     [nombre, email, hash]
   )
 
-  console.log(`Usuario admin creado: ${email} / ${password}`)
+  console.log(`Usuario admin creado: ${email}`)
   console.log('CAMBIA LA CONTRASEÑA después del primer login.')
   await pool.end()
 }

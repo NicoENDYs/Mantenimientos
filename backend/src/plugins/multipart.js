@@ -2,14 +2,13 @@
 
 const fp = require('fastify-plugin')
 const multipart = require('@fastify/multipart')
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+const { MAX_FILE_SIZE, MAX_FOTOS } = require('../constants')
 
 module.exports = fp(async function (fastify) {
   fastify.register(multipart, {
     limits: {
       fileSize: MAX_FILE_SIZE,
-      files: 5,
+      files: MAX_FOTOS,
     },
   })
 })

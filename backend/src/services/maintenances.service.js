@@ -5,6 +5,7 @@ const path = require('path')
 const { v4: uuidv4 } = require('uuid')
 const pool = require('../db/pool')
 const { validateMimeBuffer } = require('../middlewares/validateMime')
+const { MAX_FOTOS, MAX_ITEMS_POR_PAGINA } = require('../constants')
 
 const PHOTOS_DIR = process.env.PHOTOS_DIR || path.join(__dirname, '../../private/photos')
 
@@ -46,7 +47,7 @@ async function findAll(query, userRol, userId) {
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
   const page   = Math.max(1, parseInt(query.page,  10) || 1)
-  const limit  = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20))
+  const limit  = Math.min(MAX_ITEMS_POR_PAGINA, Math.max(1, parseInt(query.limit, 10) || 20))
   const offset = (page - 1) * limit
 
   const baseFrom = `
@@ -267,14 +268,23 @@ async function getPhotoFile(maintenanceId, photoId, user) {
     throw err
   }
   const filePath = rows[0].ruta_archivo
-  if (!require('fs').existsSync(filePath)) {
+  // Protección path traversal: verificar que el archivo esté dentro de PHOTOS_DIR
+  const resolvedPath = path.resolve(filePath)
+  const resolvedDir  = path.resolve(PHOTOS_DIR)
+  if (!resolvedPath.startsWith(resolvedDir + path.sep)) {
+    const err = new Error('Acceso denegado')
+    err.statusCode = 403
+    throw err
+  }
+  if (!require('fs').existsSync(resolvedPath)) {
     const err = new Error('Archivo no encontrado en disco')
     err.statusCode = 404
     throw err
   }
-  const ext = filePath.split('.').pop().toLowerCase()
+  const dotParts = resolvedPath.split('.')
+  const ext  = dotParts.length > 1 ? dotParts.pop().toLowerCase() : ''
   const mime = MIME_FROM_EXT[ext] || 'application/octet-stream'
-  return { filePath, mime }
+  return { filePath: resolvedPath, mime }
 }
 
 async function addPhotos(maintenanceId, files) {
@@ -292,8 +302,8 @@ async function addPhotos(maintenanceId, files) {
     [maintenanceId]
   )
   const current = parseInt(countRes.rows[0].count, 10)
-  if (current + files.length > 5) {
-    const err = new Error(`Se pueden adjuntar máximo 5 fotos. Ya tiene ${current}.`)
+  if (current + files.length > MAX_FOTOS) {
+    const err = new Error(`Se pueden adjuntar máximo ${MAX_FOTOS} fotos. Ya tiene ${current}.`)
     err.statusCode = 400
     throw err
   }
@@ -304,7 +314,7 @@ async function addPhotos(maintenanceId, files) {
 
   const saved = []
   for (const file of files) {
-    const detected = validateMimeBuffer(file.buffer, file.fieldname)
+    const detected = await validateMimeBuffer(file.buffer, file.fieldname)
     const ext = detected.split('/')[1].replace('jpeg', 'jpg')
     const filename = `${uuidv4()}.${ext}`
     const fullPath = path.join(PHOTOS_DIR, filename)
@@ -365,4 +375,19 @@ async function getNotifications(userId) {
   return rows
 }
 
-module.exports = { findAll, findById, create, update, approve, reject, getPhotoFile, addPhotos, deletePhoto, getNotifications }
+async function getStats(userId, userRol) {
+  const isAdmin = ['supervisor', 'admin'].includes(userRol)
+  const { rows } = await pool.query(`
+    SELECT estado, COUNT(*)::int AS total
+    FROM maintenances
+    ${isAdmin ? '' : 'WHERE user_id = $1'}
+    GROUP BY estado
+  `, isAdmin ? [] : [userId])
+
+  const base = { borrador: 0, pendiente_aprobacion: 0, aprobado: 0, rechazado: 0 }
+  rows.forEach(r => { base[r.estado] = r.total })
+  base.total = Object.values(base).reduce((a, b) => a + b, 0)
+  return base
+}
+
+module.exports = { findAll, findById, create, update, approve, reject, getPhotoFile, addPhotos, deletePhoto, getNotifications, getStats }

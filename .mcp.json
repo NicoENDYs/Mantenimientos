@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "magic-ui": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@magicuidesign/mcp"]
+    },
+    "universal-icons": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "mcp-universal-icons"]
+    },
+    "colors-fonts": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@colorsandfonts/mcp"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ]
+    }
+  }
+}

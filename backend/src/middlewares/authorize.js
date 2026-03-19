@@ -8,7 +8,7 @@ function authorize(roles) {
   return async function (request, reply) {
     const userRol = request.user && request.user.rol
     if (!userRol || !roles.includes(userRol)) {
-      reply.code(403).send({
+      return reply.code(403).send({
         statusCode: 403,
         error: 'Forbidden',
         message: 'No tienes permisos para realizar esta acción',

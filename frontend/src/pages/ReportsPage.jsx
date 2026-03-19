@@ -13,6 +13,10 @@ export default function ReportsPage() {
     setFilters(f => ({ ...f, [key]: value }))
   }
 
+  const dateRangeError = filters.fecha_desde && filters.fecha_hasta && filters.fecha_desde > filters.fecha_hasta
+    ? 'La fecha "desde" no puede ser mayor que "hasta"'
+    : ''
+
   function activeParams() {
     return Object.fromEntries(Object.entries(filters).filter(([, v]) => v))
   }
@@ -75,12 +79,13 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {dateRangeError && <p className="text-red-600 text-sm mb-4">{dateRangeError}</p>}
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
       <div className="flex flex-col sm:flex-row gap-4">
         <button
           onClick={() => download('excel')}
-          disabled={loading}
+          disabled={loading || !!dateRangeError}
           className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <span className="text-xl">📊</span>
@@ -88,7 +93,7 @@ export default function ReportsPage() {
         </button>
         <button
           onClick={() => download('pdf')}
-          disabled={loading}
+          disabled={loading || !!dateRangeError}
           className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-4 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <span className="text-xl">📄</span>

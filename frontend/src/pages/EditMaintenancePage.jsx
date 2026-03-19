@@ -6,8 +6,7 @@ import PartsSubform from '../components/PartsSubform'
 import PhotoUpload from '../components/PhotoUpload'
 import AuthImage from '../components/AuthImage'
 import api from '../api/axiosInstance'
-
-const MAX_PHOTOS = 5
+import { MAX_FOTOS as MAX_PHOTOS } from '../constants'
 
 export default function EditMaintenancePage() {
   const { id } = useParams()
@@ -25,11 +24,16 @@ export default function EditMaintenancePage() {
   const hubo_cambio = watch('hubo_cambio')
 
   useEffect(() => {
-    api.get(`/maintenances/${id}`)
+    let mounted = true
+    const controller = new AbortController()
+
+    api.get(`/maintenances/${id}`, { signal: controller.signal })
       .then(res => {
+        if (!mounted) return
         const m = res.data
         if (!['borrador', 'rechazado'].includes(m.estado)) {
           setLoadError('Este mantenimiento no se puede editar en su estado actual.')
+          setLoading(false)
           return
         }
         reset({
@@ -40,9 +44,15 @@ export default function EditMaintenancePage() {
         })
         setParts(m.partes || [])
         setExistingPhotos(m.fotos || [])
+        setLoading(false)
       })
-      .catch(err => setLoadError(err.response?.data?.message || 'Error al cargar el mantenimiento'))
-      .finally(() => setLoading(false))
+      .catch(err => {
+        if (!mounted || err.code === 'ERR_CANCELED') return
+        setLoadError(err.response?.data?.message || 'Error al cargar el mantenimiento')
+        setLoading(false)
+      })
+
+    return () => { mounted = false; controller.abort() }
   }, [id])
 
   async function handleDeleteExistingPhoto(photoId) {
@@ -50,7 +60,7 @@ export default function EditMaintenancePage() {
       await api.delete(`/maintenances/${id}/photos/${photoId}`)
       setExistingPhotos(prev => prev.filter(f => f.id !== photoId))
     } catch (err) {
-      alert(err.response?.data?.message || 'Error al eliminar la foto')
+      setSubmitError(err.response?.data?.message || 'Error al eliminar la foto')
     }
   }
 
@@ -110,8 +120,9 @@ export default function EditMaintenancePage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Motivo del mantenimiento *</label>
             <textarea
-              {...register('motivo', { required: 'Requerido' })}
+              {...register('motivo', { required: 'Requerido', maxLength: { value: 500, message: 'Máximo 500 caracteres' } })}
               rows={2}
+              maxLength={500}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.motivo && <p className="text-red-500 text-xs">{errors.motivo.message}</p>}
@@ -120,8 +131,9 @@ export default function EditMaintenancePage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Descripción del problema *</label>
             <textarea
-              {...register('descripcion_problema', { required: 'Requerido' })}
+              {...register('descripcion_problema', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
               rows={3}
+              maxLength={5000}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.descripcion_problema && <p className="text-red-500 text-xs">{errors.descripcion_problema.message}</p>}
@@ -130,8 +142,9 @@ export default function EditMaintenancePage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Solución aplicada *</label>
             <textarea
-              {...register('solucion', { required: 'Requerido' })}
+              {...register('solucion', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
               rows={3}
+              maxLength={5000}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.solucion && <p className="text-red-500 text-xs">{errors.solucion.message}</p>}

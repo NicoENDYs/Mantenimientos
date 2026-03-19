@@ -7,8 +7,7 @@ import AssetInfo from '../components/AssetInfo'
 import PartsSubform from '../components/PartsSubform'
 import PhotoUpload from '../components/PhotoUpload'
 import api from '../api/axiosInstance'
-
-const DRAFT_KEY = 'sigman_draft_maintenance'
+import { DRAFT_KEY } from '../constants'
 
 export default function NewMaintenancePage() {
   const navigate = useNavigate()
@@ -39,13 +38,15 @@ export default function NewMaintenancePage() {
     }
   }, [])
 
-  // Autoguardar en localStorage cuando cambia algún campo
+  // Autoguardar en localStorage cuando cambia algún campo (debounced 400ms)
   useEffect(() => {
     const { assetCode, motivo, descripcion_problema, solucion, hubo_cambio: hc } = formValues
     const hasData = assetCode || motivo || descripcion_problema || solucion
-    if (hasData) {
+    if (!hasData) return
+    const timer = setTimeout(() => {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({ assetCode, motivo, descripcion_problema, solucion, hubo_cambio: hc, parts }))
-    }
+    }, 400)
+    return () => clearTimeout(timer)
   }, [formValues, parts])
 
   function restoreDraft() {
@@ -189,8 +190,9 @@ export default function NewMaintenancePage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Motivo del mantenimiento *</label>
             <textarea
-              {...register('motivo', { required: 'Requerido' })}
+              {...register('motivo', { required: 'Requerido', maxLength: { value: 500, message: 'Máximo 500 caracteres' } })}
               rows={2}
+              maxLength={500}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.motivo && <p className="text-red-500 text-xs">{errors.motivo.message}</p>}
@@ -199,8 +201,9 @@ export default function NewMaintenancePage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Descripción del problema *</label>
             <textarea
-              {...register('descripcion_problema', { required: 'Requerido' })}
+              {...register('descripcion_problema', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
               rows={3}
+              maxLength={5000}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.descripcion_problema && <p className="text-red-500 text-xs">{errors.descripcion_problema.message}</p>}
@@ -209,8 +212,9 @@ export default function NewMaintenancePage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Solución aplicada *</label>
             <textarea
-              {...register('solucion', { required: 'Requerido' })}
+              {...register('solucion', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
               rows={3}
+              maxLength={5000}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.solucion && <p className="text-red-500 text-xs">{errors.solucion.message}</p>}

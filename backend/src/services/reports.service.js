@@ -24,8 +24,15 @@ function buildReportQuery(filters, userRol, userId) {
     conditions.push(`m.user_id = $${i++}`)
     values.push(userId)
   }
-  if (filters.fecha_desde) { conditions.push(`m.created_at >= $${i++}`); values.push(filters.fecha_desde) }
-  if (filters.fecha_hasta) { conditions.push(`m.created_at <= $${i++}`); values.push(filters.fecha_hasta) }
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]*)?$/
+  if (filters.fecha_desde) {
+    if (!ISO_DATE.test(filters.fecha_desde)) throw Object.assign(new Error('fecha_desde debe ser formato ISO 8601'), { statusCode: 400 })
+    conditions.push(`m.created_at >= $${i++}`); values.push(filters.fecha_desde)
+  }
+  if (filters.fecha_hasta) {
+    if (!ISO_DATE.test(filters.fecha_hasta)) throw Object.assign(new Error('fecha_hasta debe ser formato ISO 8601'), { statusCode: 400 })
+    conditions.push(`m.created_at <= $${i++}`); values.push(filters.fecha_hasta)
+  }
   if (filters.user_id)     { conditions.push(`m.user_id = $${i++}`);     values.push(filters.user_id) }
   if (filters.asset_code)  { conditions.push(`a.codigo ILIKE $${i++}`);  values.push(`%${filters.asset_code}%`) }
   if (filters.estado)      { conditions.push(`m.estado = $${i++}`);      values.push(filters.estado) }

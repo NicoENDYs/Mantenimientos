@@ -9,11 +9,11 @@ async function list(request, reply) {
 
 async function detail(request, reply) {
   const item = await svc.findById(parseInt(request.params.id, 10))
-  if (!item) return reply.code(404).send({ message: 'Mantenimiento no encontrado' })
+  if (!item) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Mantenimiento no encontrado' })
 
   // Técnico solo puede ver los suyos
   if (request.user.rol === 'tecnico' && item.user_id !== request.user.id) {
-    return reply.code(403).send({ message: 'No tienes acceso a este mantenimiento' })
+    return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'No tienes acceso a este mantenimiento' })
   }
   return reply.send(item)
 }
@@ -92,4 +92,9 @@ async function notifications(request, reply) {
   return reply.send(items)
 }
 
-module.exports = { list, detail, create, update, approve, reject, uploadPhotos, servePhoto, deletePhoto, notifications }
+async function stats(request, reply) {
+  const data = await svc.getStats(request.user.id, request.user.rol)
+  return reply.send(data)
+}
+
+module.exports = { list, detail, create, update, approve, reject, uploadPhotos, servePhoto, deletePhoto, notifications, stats }

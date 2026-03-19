@@ -17,6 +17,25 @@ function buildApp(opts = {}) {
     },
   })
 
+  // — Swagger (solo en desarrollo) —
+  if (process.env.NODE_ENV !== 'production') {
+    fastify.register(require('@fastify/swagger'), {
+      openapi: {
+        info: { title: 'SIGMAN API', version: '1.0.0', description: 'API del sistema de gestión de mantenimiento' },
+        components: {
+          securitySchemes: {
+            cookieAuth: { type: 'apiKey', in: 'cookie', name: 'token' },
+          },
+        },
+        security: [{ cookieAuth: [] }],
+      },
+    })
+    fastify.register(require('@fastify/swagger-ui'), {
+      routePrefix: '/docs',
+      uiConfig: { docExpansion: 'list' },
+    })
+  }
+
   // — Plugins de seguridad y utilidades —
   fastify.register(require('./plugins/cookie'))
   fastify.register(require('./plugins/helmet'))
@@ -28,10 +47,14 @@ function buildApp(opts = {}) {
   // — Manejador global de errores —
   fastify.setErrorHandler(function (error, request, reply) {
     const statusCode = error.statusCode || error.status || 500
+    if (statusCode >= 500) {
+      request.log.error({ err: error }, 'Unhandled error')
+    }
     reply.code(statusCode).send({
       statusCode,
       error: error.name || 'Error',
       message: error.message || 'Error interno del servidor',
+      requestId: request.id,
     })
   })
 

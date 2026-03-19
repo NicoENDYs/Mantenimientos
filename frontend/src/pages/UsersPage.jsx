@@ -42,7 +42,7 @@ export default function UsersPage() {
       await api.patch(`/users/${id}/toggle`)
       fetchUsers()
     } catch (err) {
-      alert(err.response?.data?.message || 'Error')
+      setError(err.response?.data?.message || 'Error al cambiar estado del usuario')
     }
   }
 
@@ -64,7 +64,8 @@ export default function UsersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Nombre</label>
-              <input {...register('nombre', { required: true })}
+              <input {...register('nombre', { required: true, maxLength: 100 })}
+                maxLength={100}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               {errors.nombre && <p className="text-red-500 text-xs">Requerido</p>}
             </div>
@@ -96,6 +97,9 @@ export default function UsersPage() {
         </form>
       )}
 
+      {error && !showForm && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 mb-4">{error}</div>
+      )}
       {loading && <p className="text-gray-400 text-sm">Cargando...</p>}
 
       <div className="space-y-2">

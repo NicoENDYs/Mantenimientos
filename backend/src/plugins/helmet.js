@@ -3,8 +3,11 @@
 const fp = require('fastify-plugin')
 const helmet = require('@fastify/helmet')
 
+const IS_PROD = process.env.NODE_ENV === 'production'
+
 module.exports = fp(async function (fastify) {
   fastify.register(helmet, {
+    hsts: IS_PROD ? { maxAge: 31536000, includeSubDomains: true } : false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],

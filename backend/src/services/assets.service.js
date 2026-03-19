@@ -1,6 +1,7 @@
 'use strict'
 
 const pool = require('../db/pool')
+const logger = require('pino')()
 
 async function searchByCode(code) {
   // 1. Intentar API externa
@@ -16,8 +17,8 @@ async function searchByCode(code) {
         await upsertAsset(code, data)
         return { ...data, pendiente_sync: false }
       }
-    } catch {
-      // API no disponible — continuar con cache
+    } catch (err) {
+      logger.warn({ err }, 'API activos no disponible — usando cache local')
     }
   }
 
