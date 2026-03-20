@@ -136,6 +136,18 @@ export default function Layout({ children }) {
       <main className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">
         {children}
       </main>
+      
+      <footer className="bg-blue-700 text-blue-100 text-xs text-center py-3 mt-auto">
+        <p>
+          Desarrollado por <span className="font-semibold text-white">Nicolas</span> &mdash;{' '}
+          <span className="font-semibold text-white">ENDYs</span>
+        </p>
+        <p>
+          <a href="mailto:guarinmolinan@gmail.com" className="hover:text-white transition underline">
+            guarinmolinan@gmail.com
+          </a>
+        </p>
+      </footer>
     </div>
   )
 }
