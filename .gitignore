@@ -9,6 +9,8 @@ node_modules/
 .env.production
 
 # ─── Archivos subidos (uploads) ───────────────────────────────
+private/logs/
+private/photos/
 backend/private/
 
 # ─── Build del frontend (Vite) ────────────────────────────────
@@ -43,4 +45,4 @@ desktop.ini
 *.tmp
 
 # ─── Claude  ─────────────────────────────────────────────────
-.claude
+.claude/
