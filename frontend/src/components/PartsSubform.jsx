@@ -1,3 +1,5 @@
+import { Plus, Trash2 } from 'lucide-react'
+
 export default function PartsSubform({ parts, onChange }) {
   function add() {
     onChange([...parts, { descripcion: '', cantidad: 1 }])
@@ -8,48 +10,57 @@ export default function PartsSubform({ parts, onChange }) {
   }
 
   function update(index, field, value) {
-    onChange(parts.map((p, i) => i === index ? { ...p, [field]: value } : p))
+    onChange(parts.map((p, i) => (i === index ? { ...p, [field]: value } : p)))
   }
 
   return (
-    <div className="space-y-2">
-      {parts.map((part, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <div className="flex-1">
+    <div className="flex flex-col gap-2.5">
+      {parts.map((part, i) => {
+        const invalid = !part.descripcion.trim()
+        return (
+          <div key={i} className="flex items-start gap-2">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Descripción de la pieza"
+                value={part.descripcion}
+                onChange={(e) => update(i, 'descripcion', e.target.value)}
+                aria-invalid={invalid}
+                className="input"
+                style={invalid ? { borderColor: 'var(--danger)' } : undefined}
+              />
+              {invalid && (
+                <p className="mt-1 text-xs text-danger-fg">Descripción requerida</p>
+              )}
+            </div>
             <input
-              type="text"
-              placeholder="Descripción de la pieza"
-              value={part.descripcion}
-              onChange={(e) => update(i, 'descripcion', e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${!part.descripcion.trim() ? 'border-red-400' : 'border-gray-300'}`}
+              type="number"
+              min="1"
+              aria-label="Cantidad"
+              value={part.cantidad}
+              onChange={(e) => update(i, 'cantidad', parseInt(e.target.value, 10) || 1)}
+              className="input w-20 shrink-0"
             />
-            {!part.descripcion.trim() && (
-              <p className="text-red-500 text-xs mt-0.5">Descripción requerida</p>
-            )}
+            <button
+              type="button"
+              onClick={() => remove(i)}
+              aria-label="Eliminar pieza"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted
+                transition-colors hover:bg-danger-soft hover:text-danger-fg"
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
-          <input
-            type="number"
-            min="1"
-            value={part.cantidad}
-            onChange={(e) => update(i, 'cantidad', parseInt(e.target.value, 10) || 1)}
-            className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="button"
-            onClick={() => remove(i)}
-            className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
-            title="Eliminar pieza"
-          >
-            ×
-          </button>
-        </div>
-      ))}
+        )
+      })}
       <button
         type="button"
         onClick={add}
-        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+        className="inline-flex items-center gap-1.5 self-start rounded-md py-1.5 text-sm
+          font-medium text-accent transition-colors hover:underline"
       >
-        + Agregar pieza
+        <Plus size={16} aria-hidden="true" />
+        Agregar pieza
       </button>
     </div>
   )

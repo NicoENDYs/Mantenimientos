@@ -3,6 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axiosInstance'
+import Button from '../components/Button'
+import Field from '../components/Field'
+import ThemeToggle from '../components/ThemeToggle'
+import {
+  Wrench, Eye, EyeOff, AlertCircle,
+  Camera, ClipboardCheck, FileSpreadsheet,
+} from 'lucide-react'
+
+const CAPACIDADES = [
+  { Icon: Camera,          text: 'Registro de intervenciones con fotos y repuestos' },
+  { Icon: ClipboardCheck,  text: 'Aprobación en línea: del técnico al supervisor' },
+  { Icon: FileSpreadsheet, text: 'Reportes exportables en Excel y PDF' },
+]
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -15,77 +28,129 @@ export default function LoginPage() {
     setError('')
     try {
       const res = await api.post('/auth/login', data)
-      login(res.data.user)   // el token va en la cookie httpOnly, no lo tocamos
+      login(res.data.user)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al iniciar sesión')
+      setError(err.response?.data?.message || 'No pudimos iniciar sesión. Verifica tus datos.')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">SIGMAN</h1>
-        <p className="text-center text-gray-500 text-sm mb-6">Gestión de Mantenimientos</p>
+    <div className="min-h-screen bg-surface lg:grid lg:grid-cols-[1.05fr_minmax(0,1fr)]">
+      {/* Panel de marca — escritorio */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-bg p-12 lg:flex xl:p-16">
+        <div className="dot-grid absolute inset-0 opacity-70" aria-hidden="true" />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
-            <input
-              type="email"
-              autoComplete="email"
-              {...register('email', { required: true })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="usuario@empresa.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                {...register('password', { required: true })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(v => !v)}
-                className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
-                tabIndex={-1}
-              >
-                {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7s4-7 9-7a9.95 9.95 0 016.375 2.325M15 12a3 3 0 11-6 0 3 3 0 016 0zm4.5-4.5l-9 9" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>  
-                )}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition disabled:opacity-50"
-          >
-            {isSubmitting ? 'Ingresando...' : 'Ingresar'}
-          </button>
-        </form>
-
-        <div className="mt-4 text-center">
-          <a href="/recover" className="text-sm text-blue-500 hover:underline">¿Olvidaste tu contraseña?</a>
+        <div className="relative flex items-center gap-2.5">
+          <span className="grid h-10 w-10 place-items-center rounded-md bg-accent text-accent-fg">
+            <Wrench size={20} aria-hidden="true" />
+          </span>
+          <span className="font-display text-xl font-extrabold tracking-tight text-foreground">
+            SIGMAN
+          </span>
         </div>
-      </div>
+
+        <div className="relative max-w-md">
+          <h1 className="font-display text-3xl font-extrabold leading-tight tracking-tight text-foreground xl:text-4xl">
+            El mantenimiento de tus equipos, registrado y aprobado sin papeles.
+          </h1>
+          <p className="mt-5 text-base text-muted">
+            Los técnicos documentan cada intervención; los supervisores
+            revisan, aprueban y exportan. Todo el historial en un solo lugar.
+          </p>
+        </div>
+
+        <ul className="relative flex flex-col gap-3.5 border-t border-border pt-6">
+          {CAPACIDADES.map(({ Icon, text }) => (
+            <li key={text} className="flex items-center gap-3 text-sm text-muted">
+              <Icon size={18} className="shrink-0 text-accent" aria-hidden="true" />
+              {text}
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      {/* Panel de formulario */}
+      <main className="relative flex min-h-screen flex-col px-6 py-10 sm:px-10">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
+
+        <div className="m-auto w-full max-w-sm">
+          {/* Marca compacta — solo móvil */}
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <span className="grid h-9 w-9 place-items-center rounded-md bg-accent text-accent-fg">
+              <Wrench size={18} aria-hidden="true" />
+            </span>
+            <span className="font-display text-xl font-extrabold tracking-tight text-foreground">
+              SIGMAN
+            </span>
+          </div>
+
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
+            Iniciar sesión
+          </h2>
+          <p className="mt-1.5 text-sm text-muted">
+            Accede con la cuenta que te asignó tu administrador.
+          </p>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-7 flex flex-col gap-4">
+            <Field label="Correo electrónico" htmlFor="email">
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                className="input"
+                placeholder="usuario@empresa.com"
+                {...register('email', { required: true })}
+              />
+            </Field>
+
+            <Field label="Contraseña" htmlFor="password">
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  className="input pr-11"
+                  placeholder="••••••••"
+                  {...register('password', { required: true })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted transition-colors hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </Field>
+
+            {error && (
+              <p
+                role="alert"
+                className="flex items-start gap-2 rounded-md bg-danger-soft px-3 py-2.5 text-sm text-danger-fg"
+              >
+                <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" size="lg" className="mt-1 w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Ingresando…' : 'Ingresar'}
+            </Button>
+          </form>
+
+          <a
+            href="/recover"
+            className="mt-5 inline-block rounded-sm text-sm font-medium text-accent hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
+      </main>
     </div>
   )
 }

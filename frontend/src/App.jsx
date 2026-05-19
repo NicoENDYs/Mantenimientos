@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import Skeleton from './components/Skeleton'
 
 import LoginPage              from './pages/LoginPage'
 import DashboardPage          from './pages/DashboardPage'
@@ -15,11 +16,29 @@ import ProfilePage            from './pages/ProfilePage'
 export default function App() {
   const { loading } = useAuth()
 
-  // Mientras se verifica la cookie, no renderizar rutas (evita flash de login)
+  // Mientras se verifica la cookie, mostrar el esqueleto del shell (evita flash de login)
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-400 text-sm">Cargando...</p>
+      <div className="min-h-screen bg-bg">
+        <div className="border-b border-border bg-surface">
+          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+            <Skeleton className="h-9 w-32" />
+            <div className="hidden gap-2 md:flex">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            <Skeleton className="h-9 w-9 rounded-full" />
+          </div>
+        </div>
+        <div className="mx-auto max-w-6xl space-y-4 px-4 py-10">
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="h-4 w-72" />
+          <div className="grid grid-cols-1 gap-3 pt-4 sm:grid-cols-3">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        </div>
       </div>
     )
   }

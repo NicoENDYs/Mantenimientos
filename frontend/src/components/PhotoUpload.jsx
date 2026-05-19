@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
+import { ImagePlus, X } from 'lucide-react'
 import { MAX_FOTOS, MAX_FILE_SIZE } from '../constants'
 
-const MAX_FILES  = MAX_FOTOS
-const MAX_SIZE   = MAX_FILE_SIZE
-const ALLOWED    = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_FILES = MAX_FOTOS
+const MAX_SIZE  = MAX_FILE_SIZE
+const ALLOWED   = ['image/jpeg', 'image/png', 'image/webp']
 
 export default function PhotoUpload({ files, onChange }) {
   const inputRef = useRef()
@@ -14,15 +15,13 @@ export default function PhotoUpload({ files, onChange }) {
     const errors = []
 
     const valid = selected.filter(f => {
-      if (!ALLOWED.includes(f.type)) { errors.push(`${f.name}: tipo no permitido`); return false }
-      if (f.size > MAX_SIZE)          { errors.push(`${f.name}: excede 5 MB`);        return false }
+      if (!ALLOWED.includes(f.type)) { errors.push(`${f.name}: tipo de archivo no permitido`); return false }
+      if (f.size > MAX_SIZE)         { errors.push(`${f.name}: supera el límite de 5 MB`);     return false }
       return true
     })
 
     setPhotoErrors(errors)
-
-    const combined = [...files, ...valid].slice(0, MAX_FILES)
-    onChange(combined)
+    onChange([...files, ...valid].slice(0, MAX_FILES))
     e.target.value = ''
   }
 
@@ -32,20 +31,25 @@ export default function PhotoUpload({ files, onChange }) {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3 mb-2">
+      <div className="mb-2 flex flex-wrap gap-3">
         {files.map((f, i) => (
-          <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+          <div
+            key={i}
+            className="relative h-20 w-20 overflow-hidden rounded-lg border border-border"
+          >
             <img
               src={URL.createObjectURL(f)}
               alt={f.name}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
             <button
               type="button"
               onClick={() => remove(i)}
-              className="absolute top-0.5 right-0.5 bg-red-600 text-white w-5 h-5 rounded-full text-xs leading-none flex items-center justify-center"
+              aria-label={`Quitar ${f.name}`}
+              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full
+                bg-danger text-white transition-transform hover:scale-105"
             >
-              ×
+              <X size={13} />
             </button>
           </div>
         ))}
@@ -53,19 +57,26 @@ export default function PhotoUpload({ files, onChange }) {
           <button
             type="button"
             onClick={() => inputRef.current.click()}
-            className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 transition text-xs"
+            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg
+              border border-dashed border-border-strong text-muted transition-colors
+              hover:border-accent hover:text-accent"
           >
-            <span className="text-2xl leading-none">+</span>
-            Foto
+            <ImagePlus size={20} aria-hidden="true" />
+            <span className="text-xs font-medium">Foto</span>
           </button>
         )}
       </div>
+
       {photoErrors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 mt-2 space-y-0.5">
+        <div className="mt-2 flex flex-col gap-0.5 rounded-md bg-danger-soft p-3 text-sm text-danger-fg">
           {photoErrors.map((e, i) => <p key={i}>{e}</p>)}
         </div>
       )}
-      <p className="text-xs text-gray-400 mt-1">{files.length}/{MAX_FILES} fotos · JPG, PNG, WEBP · máx 5 MB c/u</p>
+
+      <p className="mt-1.5 text-xs text-muted">
+        {files.length}/{MAX_FILES} fotos · JPG, PNG o WEBP · máximo 5 MB cada una
+      </p>
+
       <input
         ref={inputRef}
         type="file"

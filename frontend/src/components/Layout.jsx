@@ -2,17 +2,11 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axiosInstance'
-import {
-  Wrench, BarChart2, Users, LogOut, Menu, X, ChevronRight, Settings
-} from 'lucide-react'
+import ThemeToggle from './ThemeToggle'
+import Button from './Button'
+import { Wrench, BarChart2, Users, LogOut, Menu, X, ChevronRight } from 'lucide-react'
 
 const ROL_LABEL = { tecnico: 'Técnico', supervisor: 'Supervisor', admin: 'Administrador' }
-
-const ROL_COLOR = {
-  tecnico:    'bg-blue-100 text-blue-700',
-  supervisor: 'bg-purple-100 text-purple-700',
-  admin:      'bg-orange-100 text-orange-700',
-}
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth()
@@ -27,126 +21,160 @@ export default function Layout({ children }) {
   }
 
   const navLinks = [
-    { to: '/maintenances', label: 'Mantenimientos', Icon: Wrench, roles: null },
-    { to: '/reports',      label: 'Reportes',        Icon: BarChart2, roles: ['supervisor', 'admin'] },
-    { to: '/users',        label: 'Usuarios',         Icon: Users,    roles: ['admin'] },
+    { to: '/maintenances', label: 'Mantenimientos', Icon: Wrench,    roles: null },
+    { to: '/reports',      label: 'Reportes',       Icon: BarChart2, roles: ['supervisor', 'admin'] },
+    { to: '/users',        label: 'Usuarios',       Icon: Users,     roles: ['admin'] },
   ].filter(l => !l.roles || l.roles.includes(user?.rol))
 
   const isActive = (path) => location.pathname.startsWith(path)
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-blue-700 text-white shadow-lg">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-wide">
-              <Settings size={20} className="text-blue-200" />
-              <span>SIGMAN</span>
+    <div className="min-h-screen flex flex-col bg-bg">
+      <header className="sticky top-0 z-40 bg-surface border-b border-border">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="flex h-16 items-center justify-between gap-4">
+            {/* Marca */}
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 rounded-md py-1 pr-2"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-md bg-accent text-accent-fg">
+                <Wrench size={18} aria-hidden="true" />
+              </span>
+              <span className="font-display text-xl font-extrabold tracking-tight text-foreground">
+                SIGMAN
+              </span>
             </Link>
 
-            {/* Nav escritorio */}
-            <div className="hidden md:flex items-center gap-1">
+            {/* Navegación — escritorio */}
+            <nav className="hidden md:flex items-center gap-1">
               {navLinks.map(({ to, label, Icon }) => (
                 <Link
                   key={to}
                   to={to}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                  aria-current={isActive(to) ? 'page' : undefined}
+                  className={`flex h-10 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors ${
                     isActive(to)
-                      ? 'bg-blue-800 text-white'
-                      : 'text-blue-100 hover:bg-blue-600'
+                      ? 'bg-accent-soft text-accent-soft-fg'
+                      : 'text-muted hover:bg-surface-2 hover:text-foreground'
                   }`}
                 >
-                  <Icon size={15} />
+                  <Icon size={16} aria-hidden="true" />
                   {label}
                 </Link>
               ))}
-            </div>
+            </nav>
 
-            {/* Usuario + Salir escritorio */}
-            <div className="hidden md:flex items-center gap-3">
-              <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition">
-                <span className="text-sm text-blue-100">{user?.nombre}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROL_COLOR[user?.rol]}`}>
-                  {ROL_LABEL[user?.rol]}
+            {/* Acciones — escritorio */}
+            <div className="hidden md:flex items-center gap-2">
+              <ThemeToggle />
+              <Link
+                to="/profile"
+                className="flex items-center gap-2.5 rounded-md py-1.5 pl-2 pr-1 transition-colors hover:bg-surface-2"
+              >
+                <span className="text-right leading-tight">
+                  <span className="block text-sm font-medium text-foreground">{user?.nombre}</span>
+                  <span className="block text-xs text-muted">{ROL_LABEL[user?.rol]}</span>
+                </span>
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-sm font-semibold text-muted">
+                  {user?.nombre?.charAt(0)?.toUpperCase() || '?'}
                 </span>
               </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition"
-              >
-                <LogOut size={14} />
+              <Button variant="secondary" size="md" icon={LogOut} onClick={handleLogout}>
                 Salir
-              </button>
+              </Button>
             </div>
 
-            {/* Hamburguesa móvil */}
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-blue-600 transition"
-              onClick={() => setMenuOpen(o => !o)}
-              aria-label="Abrir menú"
-            >
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {/* Acciones — móvil */}
+            <div className="flex items-center gap-1 md:hidden">
+              <ThemeToggle />
+              <button
+                type="button"
+                className="grid h-11 w-11 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+                onClick={() => setMenuOpen(o => !o)}
+                aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                aria-expanded={menuOpen}
+              >
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Menú móvil */}
         {menuOpen && (
-          <div className="md:hidden border-t border-blue-600 bg-blue-800">
-            <div className="px-4 py-3 space-y-1">
-              {navLinks.map(({ to, label, Icon }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                    isActive(to)
-                      ? 'bg-blue-700 text-white'
-                      : 'text-blue-100 hover:bg-blue-700'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Icon size={16} />
-                    {label}
-                  </span>
-                  <ChevronRight size={14} className="opacity-50" />
-                </Link>
-              ))}
-            </div>
-            <div className="px-4 py-3 border-t border-blue-700 flex items-center justify-between">
-              <Link to="/profile" onClick={() => setMenuOpen(false)} className="hover:opacity-80 transition">
-                <p className="text-sm text-white font-medium">{user?.nombre}</p>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROL_COLOR[user?.rol]}`}>
-                  {ROL_LABEL[user?.rol]}
+          <div className="md:hidden border-t border-border bg-surface">
+            <div className="mx-auto max-w-6xl px-4 py-3">
+              <Link
+                to="/profile"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg p-3 transition-colors hover:bg-surface-2"
+              >
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-sm font-semibold text-muted">
+                  {user?.nombre?.charAt(0)?.toUpperCase() || '?'}
+                </span>
+                <span className="leading-tight">
+                  <span className="block text-sm font-medium text-foreground">{user?.nombre}</span>
+                  <span className="block text-xs text-muted">{ROL_LABEL[user?.rol]}</span>
                 </span>
               </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-sm font-medium transition"
-              >
-                <LogOut size={14} />
-                Salir
-              </button>
+
+              <nav className="mt-2 flex flex-col gap-1">
+                {navLinks.map(({ to, label, Icon }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setMenuOpen(false)}
+                    aria-current={isActive(to) ? 'page' : undefined}
+                    className={`flex h-12 items-center justify-between rounded-lg px-3 text-sm font-medium transition-colors ${
+                      isActive(to)
+                        ? 'bg-accent-soft text-accent-soft-fg'
+                        : 'text-foreground hover:bg-surface-2'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Icon size={18} aria-hidden="true" />
+                      {label}
+                    </span>
+                    <ChevronRight size={16} className="text-faint" aria-hidden="true" />
+                  </Link>
+                ))}
+              </nav>
+
+              <div className="mt-3 border-t border-border pt-3">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  icon={LogOut}
+                  onClick={handleLogout}
+                  className="w-full"
+                >
+                  Cerrar sesión
+                </Button>
+              </div>
             </div>
           </div>
         )}
-      </nav>
+      </header>
 
-      <main className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-10">
         {children}
       </main>
-      
-      <footer className="bg-blue-700 text-blue-100 text-xs text-center py-3 mt-auto">
-        <p>
-          Desarrollado por <span className="font-semibold text-white">Nicolas</span> &mdash;{' '}
-          <span className="font-semibold text-white">ENDYs</span>
-        </p>
-        <p>
-          <a href="mailto:guarinmolinan@gmail.com" className="hover:text-white transition underline">
-            guarinmolinan@gmail.com
+
+      <footer className="border-t border-border bg-surface">
+        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-5 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Desarrollado por{' '}
+            <span className="font-medium text-foreground">Nicolás</span> ·{' '}
+            <span className="font-medium text-foreground">ENDYs</span>
+          </p>
+          <a
+            href="mailto:guarinmolinan@gmail.com"
+            className="rounded-sm text-accent hover:underline"
+          >
+              guarinmolinan@gmail.com
           </a>
-        </p>
+        </div>
       </footer>
     </div>
   )

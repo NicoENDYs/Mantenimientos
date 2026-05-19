@@ -2,12 +2,29 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import Layout from '../components/Layout'
+import Card from '../components/Card'
+import Field from '../components/Field'
+import Button from '../components/Button'
 import QRScanner from '../components/QRScanner'
 import AssetInfo from '../components/AssetInfo'
 import PartsSubform from '../components/PartsSubform'
 import PhotoUpload from '../components/PhotoUpload'
 import api from '../api/axiosInstance'
 import { DRAFT_KEY } from '../constants'
+import { ArrowLeft, QrCode, AlertCircle, FileClock } from 'lucide-react'
+
+function SeccionForm({ numero, titulo, children }) {
+  return (
+    <Card className="p-5">
+      <h2 className="mb-4 text-sm font-semibold text-foreground">
+        <span className="text-accent">Paso {numero}</span>
+        <span className="mx-2 text-border-strong">·</span>
+        {titulo}
+      </h2>
+      {children}
+    </Card>
+  )
+}
 
 export default function NewMaintenancePage() {
   const navigate = useNavigate()
@@ -26,7 +43,6 @@ export default function NewMaintenancePage() {
   const formValues  = watch()
   const hubo_cambio = formValues.hubo_cambio
 
-  // Detectar borrador al montar
   useEffect(() => {
     const saved = localStorage.getItem(DRAFT_KEY)
     if (saved) {
@@ -38,7 +54,6 @@ export default function NewMaintenancePage() {
     }
   }, [])
 
-  // Autoguardar en localStorage cuando cambia algún campo (debounced 400ms)
   useEffect(() => {
     const { assetCode, motivo, descripcion_problema, solucion, hubo_cambio: hc } = formValues
     const hasData = assetCode || motivo || descripcion_problema || solucion
@@ -92,16 +107,15 @@ export default function NewMaintenancePage() {
     setSubmitError('')
 
     if (photos.length === 0) {
-      setSubmitError('Debes adjuntar al menos 1 foto')
+      setSubmitError('Debes adjuntar al menos 1 foto como evidencia.')
       return
     }
     if (data.hubo_cambio && parts.length === 0) {
-      setSubmitError('Agrega al menos una pieza cambiada')
+      setSubmitError('Marcaste cambio de piezas: agrega al menos una pieza.')
       return
     }
 
     try {
-      // Crear mantenimiento
       const payload = {
         assetCode:            data.assetCode,
         motivo:               data.motivo,
@@ -113,7 +127,6 @@ export default function NewMaintenancePage() {
       const res = await api.post('/maintenances', payload)
       const maintenanceId = res.data.id
 
-      // Subir fotos
       const formData = new FormData()
       photos.forEach((f) => formData.append('file', f))
       await api.post(`/maintenances/${maintenanceId}/photos`, formData, {
@@ -123,144 +136,128 @@ export default function NewMaintenancePage() {
       localStorage.removeItem(DRAFT_KEY)
       navigate(`/maintenances/${maintenanceId}`)
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Error al guardar')
+      setSubmitError(err.response?.data?.message || 'No se pudo guardar el mantenimiento.')
     }
   }
 
   return (
     <Layout>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="text-blue-600 text-sm hover:underline">← Volver</button>
-        <h1 className="text-xl font-bold text-gray-800">Nuevo Mantenimiento</h1>
-      </div>
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-4 inline-flex items-center gap-1 text-sm text-accent hover:underline"
+      >
+        <ArrowLeft size={15} aria-hidden="true" />
+        Volver
+      </button>
+      <h1 className="mb-6 text-xl font-bold text-foreground">Nuevo mantenimiento</h1>
 
-      {/* Banner de borrador guardado */}
       {hasDraft && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-amber-800">Tienes un borrador guardado</p>
-            <p className="text-xs text-amber-600 mt-0.5">Puedes continuar donde lo dejaste o empezar de cero.</p>
+        <div className="mb-5 flex flex-col gap-3 rounded-xl bg-warning-soft p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2.5">
+            <FileClock size={18} className="mt-0.5 shrink-0 text-warning-fg" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-medium text-warning-fg">Tienes un borrador guardado</p>
+              <p className="mt-0.5 text-xs text-warning-fg/80">
+                Continúa donde lo dejaste o empieza un registro nuevo.
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={restoreDraft}
-              className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition font-medium"
-            >
-              Continuar borrador
-            </button>
-            <button
-              type="button"
-              onClick={discardDraft}
-              className="text-sm border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition"
-            >
-              Descartar
-            </button>
+          <div className="flex shrink-0 gap-2">
+            <Button onClick={restoreDraft}>Continuar borrador</Button>
+            <Button variant="secondary" onClick={discardDraft}>Descartar</Button>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* 1. Activo */}
-        <section className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-semibold text-gray-700 mb-3">1. Activo</h2>
-          <div className="flex gap-2 mb-3">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+        <SeccionForm numero="1" titulo="Activo">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               {...register('assetCode', { required: 'El código de activo es requerido' })}
               placeholder="Código del activo"
               onBlur={(e) => fetchAsset(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input sm:flex-1"
             />
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              icon={QrCode}
               onClick={() => setShowScanner(true)}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition"
             >
               Escanear QR
-            </button>
+            </Button>
           </div>
-          {errors.assetCode && <p className="text-red-500 text-xs mb-2">{errors.assetCode.message}</p>}
-          <AssetInfo asset={asset} loading={assetLoading} />
-        </section>
-
-        {/* 2. Descripción */}
-        <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-700">2. Descripción</h2>
-
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Motivo del mantenimiento *</label>
-            <textarea
-              {...register('motivo', { required: 'Requerido', maxLength: { value: 500, message: 'Máximo 500 caracteres' } })}
-              rows={2}
-              maxLength={500}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.motivo && <p className="text-red-500 text-xs">{errors.motivo.message}</p>}
+          {errors.assetCode && <p className="mt-1.5 text-xs text-danger-fg">{errors.assetCode.message}</p>}
+          <div className="mt-3">
+            <AssetInfo asset={asset} loading={assetLoading} />
           </div>
+        </SeccionForm>
 
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Descripción del problema *</label>
-            <textarea
-              {...register('descripcion_problema', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
-              rows={3}
-              maxLength={5000}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.descripcion_problema && <p className="text-red-500 text-xs">{errors.descripcion_problema.message}</p>}
+        <SeccionForm numero="2" titulo="Descripción del trabajo">
+          <div className="flex flex-col gap-4">
+            <Field label="Motivo del mantenimiento" htmlFor="motivo" required
+              error={errors.motivo?.message}>
+              <textarea
+                id="motivo"
+                rows={2}
+                maxLength={500}
+                className="input resize-none"
+                {...register('motivo', { required: 'Requerido', maxLength: { value: 500, message: 'Máximo 500 caracteres' } })}
+              />
+            </Field>
+            <Field label="Descripción del problema" htmlFor="descripcion_problema" required
+              error={errors.descripcion_problema?.message}>
+              <textarea
+                id="descripcion_problema"
+                rows={3}
+                maxLength={5000}
+                className="input resize-none"
+                {...register('descripcion_problema', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
+              />
+            </Field>
+            <Field label="Solución aplicada" htmlFor="solucion" required
+              error={errors.solucion?.message}>
+              <textarea
+                id="solucion"
+                rows={3}
+                maxLength={5000}
+                className="input resize-none"
+                {...register('solucion', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
+              />
+            </Field>
           </div>
+        </SeccionForm>
 
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Solución aplicada *</label>
-            <textarea
-              {...register('solucion', { required: 'Requerido', maxLength: { value: 5000, message: 'Máximo 5000 caracteres' } })}
-              rows={3}
-              maxLength={5000}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.solucion && <p className="text-red-500 text-xs">{errors.solucion.message}</p>}
-          </div>
-        </section>
-
-        {/* 3. Cambio de piezas */}
-        <section className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-semibold text-gray-700 mb-3">3. Cambio de piezas</h2>
-          <label className="flex items-center gap-2 cursor-pointer mb-3">
-            <input
-              type="checkbox"
-              {...register('hubo_cambio')}
-              className="w-4 h-4 rounded"
-            />
-            <span className="text-sm text-gray-700">¿Se cambió alguna pieza o componente?</span>
+        <SeccionForm numero="3" titulo="Cambio de piezas">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5">
+            <input type="checkbox" {...register('hubo_cambio')} className="h-4 w-4 rounded accent-accent" />
+            <span className="text-sm text-foreground">¿Se cambió alguna pieza o componente?</span>
           </label>
           {hubo_cambio && (
-            <PartsSubform parts={parts} onChange={setParts} />
+            <div className="mt-3">
+              <PartsSubform parts={parts} onChange={setParts} />
+            </div>
           )}
-        </section>
+        </SeccionForm>
 
-        {/* 4. Fotos */}
-        <section className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-semibold text-gray-700 mb-3">4. Fotos (mín. 1)</h2>
+        <SeccionForm numero="4" titulo="Evidencia fotográfica (mínimo 1)">
           <PhotoUpload files={photos} onChange={setPhotos} />
-        </section>
+        </SeccionForm>
 
         {submitError && (
-          <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{submitError}</p>
+          <p className="flex items-start gap-2 rounded-md bg-danger-soft px-3 py-2.5 text-sm text-danger-fg">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+            {submitError}
+          </p>
         )}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
-        >
-          {isSubmitting ? 'Guardando...' : 'Registrar Mantenimiento'}
-        </button>
+        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Guardando…' : 'Registrar mantenimiento'}
+        </Button>
       </form>
 
       {showScanner && (
-        <QRScanner
-          onScan={handleScan}
-          onClose={() => setShowScanner(false)}
-        />
+        <QRScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       )}
     </Layout>
   )

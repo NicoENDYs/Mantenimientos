@@ -4,11 +4,7 @@ export default function AuthImage({ src, alt, className }) {
   const blobSrc = useAuthImage(src)
 
   if (!blobSrc) {
-    return (
-      <div className={`bg-gray-100 flex items-center justify-center text-gray-400 text-xs ${className}`}>
-        Cargando...
-      </div>
-    )
+    return <div className={`skeleton ${className}`} aria-hidden="true" />
   }
 
   return <img src={blobSrc} alt={alt} className={className} />

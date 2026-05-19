@@ -3,8 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
     <title>SIGMAN — Gestión de Mantenimientos</title>
-    <link rel="shortcut icon" href="./src/public/android-chrome-192x192.png" type="image/x-icon">
+    <link rel="shortcut icon" href="./src/public/android-chrome-192x192.png" type="image/x-icon" />
+
+    <!-- Tipografía: Cabinet Grotesk + General Sans (Fontshare) -->
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800&f[]=general-sans@400,500,600,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tema: aplica data-theme antes del primer render (evita parpadeo) -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('sigman-theme');
+          var theme = stored
+            ? stored
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

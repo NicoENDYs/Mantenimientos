@@ -1,4 +1,6 @@
 import { Component } from 'react'
+import { AlertTriangle, RotateCcw } from 'lucide-react'
+import Button from './Button'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -13,19 +15,24 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="bg-white border border-red-200 rounded-xl p-8 max-w-md w-full text-center shadow">
-            <p className="text-4xl mb-4">⚠️</p>
-            <h1 className="text-xl font-bold text-gray-800 mb-2">Algo salió mal</h1>
-            <p className="text-sm text-gray-500 mb-5">
-              Ha ocurrido un error inesperado. Recarga la página para continuar.
+        <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-card">
+            <span className="grid h-12 w-12 place-items-center rounded-lg bg-danger-soft text-danger-fg">
+              <AlertTriangle size={24} aria-hidden="true" />
+            </span>
+            <h1 className="mt-5 text-xl font-bold text-foreground">Algo salió mal</h1>
+            <p className="mt-2 text-sm text-muted">
+              Ocurrió un error inesperado en la aplicación. Recarga la página
+              para continuar; si persiste, avisa al administrador.
             </p>
-            <button
+            <Button
+              icon={RotateCcw}
+              size="lg"
+              className="mt-6"
               onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
             >
               Recargar página
-            </button>
+            </Button>
           </div>
         </div>
       )
