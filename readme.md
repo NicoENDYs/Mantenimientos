@@ -14,7 +14,8 @@ SIGMAN es una aplicación web full-stack para gestionar el ciclo completo de man
 | Base de datos             | PostgreSQL |
 | Autenticación             | JWT en cookie httpOnly |
 | Frontend                  | React 18 + Vite 5 |
-| Estilos                   | Tailwind CSS 4 |
+| Estilos                   | Tailwind CSS 4 + sistema de design tokens (tema claro/oscuro) |
+| Tipografía                | Cabinet Grotesk + General Sans (Fontshare) |
 | Íconos                    | lucide-react |
 | Formularios               | react-hook-form |
 | HTTP cliente              | Axios |
@@ -44,9 +45,11 @@ sigman/
 │       └── db/
 │     
 └── frontend/
+    ├── DESIGN_SYSTEM.md       ← guía del sistema de diseño (tokens, temas, componentes)
     └── src/
         ├── main.jsx
         ├── App.jsx
+        ├── index.css          ← design tokens, temas claro/oscuro, utilidades
         ├── api/
         ├── context/
         ├── hooks/
@@ -293,7 +296,7 @@ Monta la aplicación React en el DOM. Envuelve todo en `<ErrorBoundary>`, `<Brow
 Define todas las rutas con `react-router-dom`. Envuelve rutas protegidas en `<ProtectedRoute>`.
 
 ### `src/api/axiosInstance.js`
-Configura Axios con la `baseURL` del backend. Incluye interceptor para manejar errores 401 (sesión expirada).
+Configura la instancia de Axios. La `baseURL` se arma desde `VITE_API_URL` (o `/api` si no está definida, usando el proxy de Vite) y `withCredentials: true` envía la cookie httpOnly en cada request. El token viaja en la cookie, por lo que no se necesita interceptor manual de `Authorization`.
 
 ### `src/context/AuthContext.jsx`
 Context global de autenticación. Al cargar la app llama a `GET /api/auth/me` para restaurar la sesión. Expone `user`, `login()`, `logout()`.
@@ -301,31 +304,47 @@ Context global de autenticación. Al cargar la app llama a `GET /api/auth/me` pa
 ### `src/hooks/useAuthImage.js`
 Hook personalizado que carga imágenes protegidas convirtiendo la URL a un blob URL, enviando las credenciales (cookie).
 
+### `src/index.css`
+Núcleo del sistema de diseño. Sobre Tailwind CSS 4 define los **design tokens**
+(color, tipografía, spacing, radios, sombras), los temas claro y oscuro vía
+`[data-theme]`, y clases utilitarias (`.input`, `.skeleton`, `.dot-grid`). El
+detalle completo de cómo usarlo está en **`frontend/DESIGN_SYSTEM.md`**.
+
 ### `src/pages/`
 
 | Archivo | Ruta | Descripción |
 |---------|------|-------------|
-| `LoginPage.jsx` | `/login` | Formulario de email + contraseña. Incluye atributos `autocomplete="email"` y `autocomplete="current-password"` para compatibilidad con gestores de contraseñas |
-| `DashboardPage.jsx` | `/` | Pantalla de inicio con tarjetas de estadísticas por estado (pendientes, aprobados, rechazados) y accesos rápidos |
-| `NewMaintenancePage.jsx` | `/maintenances/new` | Formulario completo de nuevo mantenimiento. Guarda automáticamente un borrador en `localStorage` con cada cambio de campo. Al volver a la página, muestra un banner ámbar ofreciendo continuar o descartar el borrador. Al hacer submit exitoso, borra el draft. Las fotos no se guardan en el draft (objetos `File` no serializables) |
+| `LoginPage.jsx` | `/login` | Inicio de sesión con layout dividido: panel de marca + formulario. Atributos `autocomplete="email"` / `autocomplete="current-password"` para gestores de contraseñas |
+| `DashboardPage.jsx` | `/` | Pantalla de inicio: acción destacada para registrar mantenimiento, resumen de estado general, accesos y novedades recientes |
+| `NewMaintenancePage.jsx` | `/maintenances/new` | Formulario completo de nuevo mantenimiento. Guarda automáticamente un borrador en `localStorage` con cada cambio de campo. Al volver a la página, muestra un banner ofreciendo continuar o descartar el borrador. Al hacer submit exitoso, borra el draft. Las fotos no se guardan en el draft (objetos `File` no serializables) |
+| `EditMaintenancePage.jsx` | `/maintenances/:id/edit` | Edición de un mantenimiento en estado `borrador` o `rechazado`. Permite eliminar fotos existentes y agregar nuevas hasta el límite |
 | `MaintenanceListPage.jsx` | `/maintenances` | Lista paginada de mantenimientos con filtros. Muestra controles Anterior/Siguiente y contador de resultados cuando hay más de una página. Al cambiar cualquier filtro la página vuelve a 1 automáticamente |
-| `MaintenanceDetailPage.jsx` | `/maintenances/:id` | Detalle del mantenimiento. Muestra botón "Editar" al técnico si el estado es `borrador` o `rechazado`. Muestra botones "Aprobar" / "Rechazar" al supervisor o admin si el estado es `pendiente_aprobacion`. |
-| `ReportsPage.jsx` | `/reports` | Filtros y botones de exportación |
-| `UsersPage.jsx` | `/users` | ABM de usuarios (solo admin) |
+| `MaintenanceDetailPage.jsx` | `/maintenances/:id` | Detalle del mantenimiento. Muestra botón "Editar" al técnico si el estado es `borrador` o `rechazado`. Muestra botones "Aprobar" / "Rechazar" al supervisor o admin si el estado es `pendiente_aprobacion` |
+| `ReportsPage.jsx` | `/reports` | Filtros y botones de exportación a Excel y PDF |
+| `UsersPage.jsx` | `/users` | ABM de usuarios y cambio de contraseña (solo admin) |
+| `ProfilePage.jsx` | `/profile` | Perfil del usuario actual y cambio de su propia contraseña |
 
 ### `src/components/`
 
+Detalle de props y ejemplos de uso en **`frontend/DESIGN_SYSTEM.md`**.
+
 | Archivo | Propósito |
 |---------|-----------|
-| `Layout.jsx` | Barra de navegación + contenedor principal. Incluye íconos en cada enlace, badge de rol con color por tipo (técnico/supervisor/admin) y resaltado del enlace activo. En móvil muestra botón hamburguesa con menú desplegable; en `md+` muestra la barra horizontal completa |
+| `Layout.jsx` | Barra de navegación pegajosa + contenedor + footer. Íconos en cada enlace, resaltado del enlace activo, badge de rol neutro y `ThemeToggle` integrado. En móvil colapsa en menú hamburguesa; en `md+` muestra la barra horizontal completa |
 | `ProtectedRoute.jsx` | Guard que redirige a `/login` si no hay sesión, o a `/` si el rol no tiene acceso |
-| `QRScanner.jsx` | Activa la cámara y decodifica QR con `html5-qrcode` |
-| `AssetInfo.jsx` | Muestra nombre, tipo y ubicación del activo encontrado |
+| `ThemeToggle.jsx` | Botón que alterna el tema claro/oscuro y lo persiste en `localStorage` |
+| `Button.jsx` | Botón reutilizable con variantes (`primary`, `secondary`, `danger`, `ghost`), tamaños (`sm`, `md`, `lg`) e íconos. Exporta `buttonClasses()` para estilizar un `<Link>` igual |
+| `Card.jsx` | Superficie elevada para agrupar contenido (borde + sombra) |
+| `Field.jsx` | Envoltura de campo de formulario: label + control + ayuda/error |
+| `Modal.jsx` | Diálogo modal con scrim oscuro, cierre por Escape / clic fuera y bloqueo de scroll |
+| `EmptyState.jsx` | Estado vacío: visual + mensaje + acción |
+| `Skeleton.jsx` | Bloque de carga con animación shimmer (sustituye a los spinners) |
+| `StatusBadge.jsx` | Badge con ícono según el estado del mantenimiento (`borrador`, `pendiente_aprobacion`, `aprobado`, `rechazado`) |
+| `QRScanner.jsx` | Activa la cámara y decodifica QR con `html5-qrcode` (dentro de un `Modal`) |
+| `AssetInfo.jsx` | Muestra código, nombre, tipo y ubicación del activo encontrado |
 | `PhotoUpload.jsx` | Input de archivos con preview, validación de tipo y límite de tamaño |
 | `PartsSubform.jsx` | Subformulario dinámico para agregar/quitar repuestos |
 | `AuthImage.jsx` | Renderiza una imagen que requiere autenticación usando `useAuthImage` |
-| `Button.jsx` | Componente de botón reutilizable con variantes (`primary`, `secondary`, `danger`, `success`, `ghost`), tamaños (`sm`, `md`, `lg`) y soporte para íconos |
-| `StatusBadge.jsx` | Badge de color con ícono según el estado del mantenimiento (`pendiente_aprobacion`, `aprobado`, `rechazado`) |
 | `ErrorBoundary.jsx` | Class component que captura errores de render en cualquier componente hijo y muestra una pantalla de fallback con botón de recarga |
 
 ---
@@ -363,6 +382,31 @@ La aplicación adapta su layout a tres rangos de dispositivo usando los breakpoi
 
 ---
 
+## Sistema de diseño (frontend)
+
+La interfaz se construye sobre un sistema de **design tokens** definido en
+`frontend/src/index.css` (Tailwind CSS 4). La guía completa — tokens,
+componentes y reglas — está en **`frontend/DESIGN_SYSTEM.md`**.
+
+- **Tema claro / oscuro:** controlado por el atributo `data-theme` en `<html>`.
+  El tema inicial sigue `prefers-color-scheme` (o la preferencia guardada en
+  `localStorage`); un script en `index.html` lo aplica antes del render para
+  evitar parpadeo. El componente `ThemeToggle` lo conmuta.
+- **Tokens semánticos:** todo color se expresa con tokens (`bg-surface`,
+  `text-foreground`, `border-border`, `accent`, semánticos de estado…). No se
+  usan colores fijos de Tailwind ni variantes `dark:`; los tokens cambian
+  solos con el tema.
+- **Acento único:** teal petróleo. Superficies neutras, y verde/ámbar/rojo
+  reservados para estados de mantenimiento.
+- **Tipografía:** Cabinet Grotesk (titulares) + General Sans (texto), servidas
+  desde Fontshare.
+- **Estados defensivos:** carga con esqueletos (`Skeleton`), vacíos con
+  `EmptyState` y errores contextuales.
+
+> Al crear o modificar UI, seguir el checklist final de `DESIGN_SYSTEM.md`.
+
+---
+
 ## Variables de entorno
 
 ### Backend (`.env`)
@@ -382,7 +426,7 @@ API_KEY=                    # API externa de activos (opcional)
 
 ### Frontend (`.env`)
 ```env
-VITE_API_BASE_URL=http://localhost:3000
+VITE_API_URL=http://localhost:3000
 ```
 
 ---
