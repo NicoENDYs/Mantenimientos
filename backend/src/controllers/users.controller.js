@@ -7,6 +7,11 @@ async function list(request, reply) {
   return reply.send(users)
 }
 
+async function assignables(request, reply) {
+  const users = await usersService.findAssignables()
+  return reply.send(users)
+}
+
 async function create(request, reply) {
   const user = await usersService.create(request.body)
   return reply.code(201).send(user)
@@ -30,4 +35,4 @@ async function unlock(request, reply) {
   return reply.send(user)
 }
 
-module.exports = { list, create, update, toggle, unlock }
+module.exports = { list, assignables, create, update, toggle, unlock }

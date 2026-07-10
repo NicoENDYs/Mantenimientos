@@ -67,6 +67,16 @@ async function update(id, { nombre, email, password, rol }) {
   return rows[0] || null
 }
 
+/** Usuarios activos que pueden recibir órdenes asignadas (para supervisores). */
+async function findAssignables() {
+  const { rows } = await pool.query(
+    `SELECT id, nombre, rol FROM users
+     WHERE activo
+     ORDER BY nombre ASC`
+  )
+  return rows
+}
+
 async function toggle(id) {
   const { rows } = await pool.query(
     'UPDATE users SET activo = NOT activo, login_intentos = 0 WHERE id = $1 RETURNING id, nombre, activo',
@@ -83,4 +93,4 @@ async function unlock(id) {
   return rows[0] || null
 }
 
-module.exports = { findAll, findById, create, update, toggle, unlock }
+module.exports = { findAll, findById, findAssignables, create, update, toggle, unlock }

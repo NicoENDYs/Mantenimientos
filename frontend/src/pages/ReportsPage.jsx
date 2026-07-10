@@ -3,18 +3,23 @@ import Layout from '../components/Layout'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import api from '../api/axiosInstance'
+import { TIPO_OPCIONES, PRIORIDAD_OPCIONES } from '../constants'
 import { FileSpreadsheet, FileText, AlertCircle } from 'lucide-react'
 
 const ESTADO_OPCIONES = [
   { value: '',                     label: 'Todos' },
   { value: 'borrador',             label: 'Borrador' },
+  { value: 'abierta',              label: 'Abierta' },
+  { value: 'en_progreso',          label: 'En progreso' },
   { value: 'pendiente_aprobacion', label: 'Pendiente de aprobación' },
   { value: 'aprobado',             label: 'Aprobado' },
   { value: 'rechazado',            label: 'Rechazado' },
 ]
 
 export default function ReportsPage() {
-  const [filters, setFilters] = useState({ fecha_desde: '', fecha_hasta: '', estado: '', asset_code: '' })
+  const [filters, setFilters] = useState({
+    fecha_desde: '', fecha_hasta: '', estado: '', asset_code: '', tipo: '', prioridad: '',
+  })
   const [pending, setPending] = useState('') // '' | 'excel' | 'pdf'
   const [error, setError]     = useState('')
 
@@ -83,6 +88,22 @@ export default function ReportsPage() {
             <span className="text-xs font-medium text-muted">Código de activo</span>
             <input value={filters.asset_code} placeholder="Ej. ABC-001"
               onChange={e => setFilter('asset_code', e.target.value)} className="input" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted">Tipo de mantenimiento</span>
+            <select value={filters.tipo}
+              onChange={e => setFilter('tipo', e.target.value)} className="input">
+              <option value="">Todos</option>
+              {TIPO_OPCIONES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted">Prioridad</span>
+            <select value={filters.prioridad}
+              onChange={e => setFilter('prioridad', e.target.value)} className="input">
+              <option value="">Todas</option>
+              {PRIORIDAD_OPCIONES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </label>
         </div>
       </Card>

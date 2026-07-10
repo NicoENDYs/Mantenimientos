@@ -4,7 +4,10 @@ import { useAuth } from '../context/AuthContext'
 import api from '../api/axiosInstance'
 import ThemeToggle from './ThemeToggle'
 import Button from './Button'
-import { Wrench, BarChart2, Users, LogOut, Menu, X, ChevronRight } from 'lucide-react'
+import {
+  Wrench, BarChart2, Users, LogOut, Menu, X, ChevronRight,
+  Inbox, HardDrive, CalendarClock, Package,
+} from 'lucide-react'
 
 const ROL_LABEL = { tecnico: 'Técnico', supervisor: 'Supervisor', admin: 'Administrador' }
 
@@ -21,9 +24,13 @@ export default function Layout({ children }) {
   }
 
   const navLinks = [
-    { to: '/maintenances', label: 'Mantenimientos', Icon: Wrench,    roles: null },
-    { to: '/reports',      label: 'Reportes',       Icon: BarChart2, roles: ['supervisor', 'admin'] },
-    { to: '/users',        label: 'Usuarios',       Icon: Users,     roles: ['admin'] },
+    { to: '/maintenances', label: 'Mantenimientos', Icon: Wrench,        roles: null },
+    { to: '/requests',     label: 'Solicitudes',    Icon: Inbox,         roles: null },
+    { to: '/assets',       label: 'Activos',        Icon: HardDrive,     roles: null },
+    { to: '/plans',        label: 'Planes',         Icon: CalendarClock, roles: ['supervisor', 'admin'] },
+    { to: '/parts',        label: 'Inventario',     Icon: Package,       roles: ['supervisor', 'admin'] },
+    { to: '/reports',      label: 'Reportes',       Icon: BarChart2,     roles: ['supervisor', 'admin'] },
+    { to: '/users',        label: 'Usuarios',       Icon: Users,         roles: ['admin'] },
   ].filter(l => !l.roles || l.roles.includes(user?.rol))
 
   const isActive = (path) => location.pathname.startsWith(path)
@@ -46,21 +53,23 @@ export default function Layout({ children }) {
               </span>
             </Link>
 
-            {/* Navegación — escritorio */}
+            {/* Navegación — escritorio (solo íconos en md, ícono + texto en lg) */}
             <nav className="hidden md:flex items-center gap-1">
               {navLinks.map(({ to, label, Icon }) => (
                 <Link
                   key={to}
                   to={to}
+                  title={label}
+                  aria-label={label}
                   aria-current={isActive(to) ? 'page' : undefined}
-                  className={`flex h-10 items-center gap-2 rounded-md px-3.5 text-sm font-medium transition-colors ${
+                  className={`flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors lg:px-3.5 ${
                     isActive(to)
                       ? 'bg-accent-soft text-accent-soft-fg'
                       : 'text-muted hover:bg-surface-2 hover:text-foreground'
                   }`}
                 >
                   <Icon size={16} aria-hidden="true" />
-                  {label}
+                  <span className="hidden lg:inline">{label}</span>
                 </Link>
               ))}
             </nav>

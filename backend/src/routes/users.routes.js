@@ -4,16 +4,24 @@ const authenticate = require('../middlewares/authenticate')
 const authorize    = require('../middlewares/authorize')
 const usersCtrl    = require('../controllers/users.controller')
 
+const soloAdmin = authorize(['admin'])
+
 async function usersRoutes(fastify) {
   fastify.addHook('preHandler', authenticate)
-  fastify.addHook('preHandler', authorize(['admin']))
 
-  // GET /api/users
-  fastify.get('/', { handler: usersCtrl.list })
+  // GET /api/users/assignables — técnicos/supervisores activos, para asignar órdenes
+  fastify.get('/assignables', {
+    preHandler: authorize(['supervisor', 'admin']),
+    handler: usersCtrl.assignables,
+  })
 
-  // POST /api/users
+  // GET /api/users — solo Admin
+  fastify.get('/', { preHandler: soloAdmin, handler: usersCtrl.list })
+
+  // POST /api/users — solo Admin
   fastify.post('/', {
     config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    preHandler: soloAdmin,
     schema: {
       body: {
         type: 'object',
@@ -29,9 +37,10 @@ async function usersRoutes(fastify) {
     handler: usersCtrl.create,
   })
 
-  // PUT /api/users/:id
+  // PUT /api/users/:id — solo Admin
   fastify.put('/:id', {
     config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    preHandler: soloAdmin,
     schema: {
       body: {
         type: 'object',
@@ -47,15 +56,17 @@ async function usersRoutes(fastify) {
     handler: usersCtrl.update,
   })
 
-  // PATCH /api/users/:id/toggle
+  // PATCH /api/users/:id/toggle — solo Admin
   fastify.patch('/:id/toggle', {
     config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    preHandler: soloAdmin,
     handler: usersCtrl.toggle,
   })
 
-  // PATCH /api/users/:id/unlock
+  // PATCH /api/users/:id/unlock — solo Admin
   fastify.patch('/:id/unlock', {
     config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    preHandler: soloAdmin,
     handler: usersCtrl.unlock,
   })
 }

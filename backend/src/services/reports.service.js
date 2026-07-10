@@ -36,6 +36,8 @@ function buildReportQuery(filters, userRol, userId) {
   if (filters.user_id)     { conditions.push(`m.user_id = $${i++}`);     values.push(filters.user_id) }
   if (filters.asset_code)  { conditions.push(`a.codigo ILIKE $${i++}`);  values.push(`%${filters.asset_code}%`) }
   if (filters.estado)      { conditions.push(`m.estado = $${i++}`);      values.push(filters.estado) }
+  if (filters.tipo)        { conditions.push(`m.tipo = $${i++}`);        values.push(filters.tipo) }
+  if (filters.prioridad)   { conditions.push(`m.prioridad = $${i++}`);   values.push(filters.prioridad) }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
   return { where, values }
@@ -44,16 +46,23 @@ function buildReportQuery(filters, userRol, userId) {
 async function getReportRows(filters, userRol, userId) {
   const { where, values } = buildReportQuery(filters, userRol, userId)
   const sql = `
-    SELECT m.id, m.estado, m.motivo, m.descripcion_problema, m.solucion,
+    SELECT m.id, m.estado, m.tipo, m.prioridad, m.motivo, m.descripcion_problema, m.solucion,
            m.hubo_cambio, m.comentario_supervisor, m.created_at, m.updated_at,
+           m.fecha_programada, m.fecha_inicio, m.fecha_fin,
+           m.horas_trabajo, m.tiempo_parada_horas,
            a.codigo AS asset_codigo, a.nombre AS asset_nombre,
            a.tipo AS asset_tipo, a.ubicacion AS asset_ubicacion,
            u.nombre AS tecnico_nombre, u.email AS tecnico_email,
-           s.nombre AS supervisor_nombre
+           s.nombre AS supervisor_nombre,
+           asig.nombre AS asignado_nombre,
+           COALESCE((SELECT SUM(mp.cantidad * mp.costo_unitario)
+                     FROM maintenance_parts mp
+                     WHERE mp.maintenance_id = m.id), 0) AS costo_repuestos
     FROM maintenances m
     JOIN assets a ON a.id = m.asset_id
     JOIN users  u ON u.id = m.user_id
     LEFT JOIN users s ON s.id = m.supervisor_id
+    LEFT JOIN users asig ON asig.id = m.assigned_to
     ${where}
     ORDER BY m.created_at DESC
   `
@@ -69,30 +78,46 @@ async function generateExcel(filters, userRol, userId) {
   const sheet = workbook.addWorksheet('Mantenimientos')
 
   sheet.columns = [
-    { header: 'ID',           key: 'id',                width: 8 },
-    { header: 'Estado',       key: 'estado',            width: 18 },
-    { header: 'Código Activo',key: 'asset_codigo',      width: 16 },
-    { header: 'Activo',       key: 'asset_nombre',      width: 25 },
-    { header: 'Tipo',         key: 'asset_tipo',        width: 16 },
-    { header: 'Ubicación',    key: 'asset_ubicacion',   width: 20 },
-    { header: 'Técnico',      key: 'tecnico_nombre',    width: 20 },
-    { header: 'Motivo',       key: 'motivo',            width: 30 },
-    { header: 'Descripción',  key: 'descripcion_problema', width: 40 },
-    { header: 'Solución',     key: 'solucion',          width: 40 },
-    { header: 'Hubo Cambio',  key: 'hubo_cambio',       width: 12 },
-    { header: 'Supervisor',   key: 'supervisor_nombre', width: 20 },
-    { header: 'Comentario',   key: 'comentario_supervisor', width: 35 },
-    { header: 'Fecha',        key: 'created_at',        width: 20 },
+    { header: 'ID',            key: 'id',                width: 8 },
+    { header: 'Estado',        key: 'estado',            width: 18 },
+    { header: 'Tipo Mant.',    key: 'tipo',              width: 14 },
+    { header: 'Prioridad',     key: 'prioridad',         width: 12 },
+    { header: 'Código Activo', key: 'asset_codigo',      width: 16 },
+    { header: 'Activo',        key: 'asset_nombre',      width: 25 },
+    { header: 'Tipo Activo',   key: 'asset_tipo',        width: 16 },
+    { header: 'Ubicación',     key: 'asset_ubicacion',   width: 20 },
+    { header: 'Técnico',       key: 'tecnico_nombre',    width: 20 },
+    { header: 'Asignado a',    key: 'asignado_nombre',   width: 20 },
+    { header: 'Motivo',        key: 'motivo',            width: 30 },
+    { header: 'Descripción',   key: 'descripcion_problema', width: 40 },
+    { header: 'Solución',      key: 'solucion',          width: 40 },
+    { header: 'Hubo Cambio',   key: 'hubo_cambio',       width: 12 },
+    { header: 'Horas Trabajo', key: 'horas_trabajo',     width: 14 },
+    { header: 'Horas Parada',  key: 'tiempo_parada_horas', width: 14 },
+    { header: 'Costo Repuestos', key: 'costo_repuestos', width: 16 },
+    { header: 'Fecha Programada', key: 'fecha_programada', width: 18 },
+    { header: 'Inicio',        key: 'fecha_inicio',      width: 20 },
+    { header: 'Fin',           key: 'fecha_fin',         width: 20 },
+    { header: 'Supervisor',    key: 'supervisor_nombre', width: 20 },
+    { header: 'Comentario',    key: 'comentario_supervisor', width: 35 },
+    { header: 'Fecha',         key: 'created_at',        width: 20 },
   ]
 
   // Cabecera en negrita
   sheet.getRow(1).font = { bold: true }
 
+  const fmtFecha     = (d) => d ? new Date(d).toLocaleString('es-CO') : ''
+  const fmtFechaDia  = (d) => d ? new Date(d).toLocaleDateString('es-CO') : ''
+
   for (const r of rows) {
     sheet.addRow({
       ...r,
       hubo_cambio: r.hubo_cambio ? 'Sí' : 'No',
-      created_at: new Date(r.created_at).toLocaleString('es-CO'),
+      costo_repuestos: parseFloat(r.costo_repuestos),
+      fecha_programada: fmtFechaDia(r.fecha_programada),
+      fecha_inicio: fmtFecha(r.fecha_inicio),
+      fecha_fin: fmtFecha(r.fecha_fin),
+      created_at: fmtFecha(r.created_at),
     })
   }
 
@@ -140,8 +165,12 @@ async function generatePdf(filters, userRol, userId) {
 
       doc.fontSize(12).fillColor('black').text(`#${r.id} — ${r.asset_codigo} | ${r.estado}`, { underline: true })
       doc.fontSize(9)
+      doc.text(`Tipo: ${r.tipo}  |  Prioridad: ${r.prioridad}${r.asignado_nombre ? `  |  Asignado a: ${r.asignado_nombre}` : ''}`)
       doc.text(`Activo: ${r.asset_nombre || '-'}  |  Tipo: ${r.asset_tipo || '-'}  |  Ubicación: ${r.asset_ubicacion || '-'}`)
       doc.text(`Técnico: ${r.tecnico_nombre}  |  Fecha: ${new Date(r.created_at).toLocaleString('es-CO')}`)
+      if (r.horas_trabajo || r.tiempo_parada_horas || parseFloat(r.costo_repuestos) > 0) {
+        doc.text(`Horas de trabajo: ${r.horas_trabajo ?? '-'}  |  Horas de parada: ${r.tiempo_parada_horas ?? '-'}  |  Costo repuestos: $${parseFloat(r.costo_repuestos).toFixed(2)}`)
+      }
       doc.text(`Motivo: ${r.motivo}`)
       doc.text(`Descripción: ${r.descripcion_problema}`)
       doc.text(`Solución: ${r.solucion}`)

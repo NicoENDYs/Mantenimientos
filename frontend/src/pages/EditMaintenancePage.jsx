@@ -6,11 +6,11 @@ import Card from '../components/Card'
 import Field from '../components/Field'
 import Skeleton from '../components/Skeleton'
 import Button from '../components/Button'
-import PartsSubform from '../components/PartsSubform'
+import PartsSubform, { serializeParts } from '../components/PartsSubform'
 import PhotoUpload from '../components/PhotoUpload'
 import AuthImage from '../components/AuthImage'
 import api from '../api/axiosInstance'
-import { MAX_FOTOS as MAX_PHOTOS } from '../constants'
+import { MAX_FOTOS as MAX_PHOTOS, TIPO_OPCIONES, PRIORIDAD_OPCIONES } from '../constants'
 import { ArrowLeft, X, AlertCircle } from 'lucide-react'
 
 export default function EditMaintenancePage() {
@@ -45,8 +45,12 @@ export default function EditMaintenancePage() {
           descripcion_problema: m.descripcion_problema,
           solucion:             m.solucion,
           hubo_cambio:          m.hubo_cambio,
+          tipo:                 m.tipo || 'correctivo',
+          prioridad:            m.prioridad || 'media',
         })
-        setParts(m.partes || [])
+        setParts((m.partes || []).map(p => ({
+          part_id: p.part_id, descripcion: p.descripcion, cantidad: p.cantidad,
+        })))
         setExistingPhotos(m.fotos || [])
         setLoading(false)
       })
@@ -86,7 +90,9 @@ export default function EditMaintenancePage() {
         descripcion_problema: data.descripcion_problema,
         solucion:             data.solucion,
         hubo_cambio:          !!data.hubo_cambio,
-        partes:               data.hubo_cambio ? parts : [],
+        tipo:                 data.tipo,
+        prioridad:            data.prioridad,
+        partes:               data.hubo_cambio ? serializeParts(parts) : [],
       })
 
       if (newPhotos.length > 0) {
@@ -144,6 +150,22 @@ export default function EditMaintenancePage() {
       <h1 className="mb-6 text-xl font-bold text-foreground">Editar mantenimiento #{id}</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+        <Card className="p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">Clasificación</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Tipo de mantenimiento" htmlFor="tipo">
+              <select id="tipo" className="input" {...register('tipo')}>
+                {TIPO_OPCIONES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Prioridad" htmlFor="prioridad">
+              <select id="prioridad" className="input" {...register('prioridad')}>
+                {PRIORIDAD_OPCIONES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+          </div>
+        </Card>
+
         <Card className="p-5">
           <h2 className="mb-4 text-sm font-semibold text-foreground">Descripción del trabajo</h2>
           <div className="flex flex-col gap-4">
