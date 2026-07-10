@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Descripción del Proyecto
 
-**SIGMAN** es un sistema de gestión de mantenimientos de activos/equipos. Incluye registro de mantenimientos con fotos y repuestos, flujo de aprobación por supervisor, gestión de usuarios y generación de reportes en Excel y PDF.
+**SIGMAN** es un sistema de gestión de mantenimientos de activos/equipos (CMMS). Incluye órdenes de trabajo con ciclo de vida completo (asignación, ejecución, aprobación), planes de mantenimiento preventivo con generación automática de órdenes, solicitudes de mantenimiento, inventario de repuestos con control de stock, ficha de activos con indicadores, KPIs (MTTR, cumplimiento preventivo, costos), fotos como evidencia, gestión de usuarios y reportes en Excel y PDF.
 
 ## Comandos de Desarrollo
 
@@ -43,14 +43,15 @@ server.js          → Punto de entrada, configura Pino logger
 app.js             → Instancia Fastify, registra plugins y rutas
 constants.js       → Constantes globales
 plugins/           → cors, helmet, jwt, cookie, multipart, rateLimit
-routes/            → Definición de rutas (auth, maintenances, users, reports, assets)
+routes/            → Definición de rutas (auth, maintenances, users, reports, assets, plans, parts, requests)
 controllers/       → Manejadores de requests (auth, maintenances, users)
-services/          → Lógica de negocio y consultas SQL (auth, maintenances, users, reports, assets)
+services/          → Lógica de negocio y consultas SQL (auth, maintenances, users, reports, assets, plans, parts, requests)
 middlewares/       → authenticate.js, authorize.js, validateMime.js
 db/
   pool.js          → Pool de conexiones PostgreSQL
-  schema.sql       → DDL completo de la base de datos
-  migrate.js       → Script de migración
+  schema.sql       → DDL completo de la base de datos (idempotente)
+  migrations/      → Migraciones incrementales para DBs existentes
+  migrate.js       → Script de migración (schema + migraciones)
   seed.js          → Datos de prueba
 private/photos/    → Almacenamiento de fotos subidas
 ```
@@ -64,33 +65,47 @@ api/axiosInstance.js → Cliente HTTP con baseURL y credentials
 context/AuthContext.jsx → Estado global de autenticación
 hooks/useAuthImage.js  → Hook para cargar imágenes protegidas
 components/        → Layout, ProtectedRoute, QRScanner, PhotoUpload,
-                     PartsSubform, StatusBadge, Button, AuthImage, ErrorBoundary
+                     PartsSubform, StatusBadge, PriorityBadge, TypeBadge,
+                     Button, AuthImage, ErrorBoundary
 pages/             → LoginPage, DashboardPage, NewMaintenancePage,
                      MaintenanceListPage, MaintenanceDetailPage,
-                     EditMaintenancePage, ReportsPage, UsersPage, ProfilePage
+                     EditMaintenancePage, RequestsPage, AssetsPage,
+                     AssetDetailPage, PlansPage, PartsPage,
+                     ReportsPage, UsersPage, ProfilePage
 ```
 
 ### Base de Datos
 
 **Tablas principales:**
 - `users` — roles: `tecnico`, `supervisor`, `admin`; incluye bloqueo por intentos fallidos
-- `assets` — caché de activos/equipos (código, nombre, tipo, ubicación, metadata JSON)
-- `maintenances` — registros de mantenimiento con estados: `borrador` → `pendiente_aprobacion` → `aprobado` / `rechazado`
-- `maintenance_parts` — repuestos utilizados por mantenimiento
+- `assets` — activos/equipos con estado operativo (`operativo`/`en_reparacion`/`fuera_de_servicio`), criticidad, jerarquía (`parent_id`) y notas
+- `parts` — catálogo de repuestos con stock, stock mínimo y costo unitario
+- `maintenance_plans` — planes preventivos: frecuencia en días, próxima fecha, asignación por defecto; generan órdenes automáticamente
+- `maintenances` — órdenes/registros con `tipo` (correctivo/preventivo/predictivo/mejora), `prioridad` (baja→crítica), asignación, fechas programada/inicio/fin, horas de trabajo y de parada
+- `maintenance_parts` — repuestos usados; `part_id` enlaza al catálogo (descuenta stock, snapshot de costo), NULL = texto libre
 - `maintenance_photos` — fotos adjuntas (ruta de archivo en disco)
+- `maintenance_requests` — solicitudes de mantenimiento (reporte de fallas) con estados `pendiente`/`convertida`/`descartada`
+- `maintenance_history` — trazabilidad de acciones y cambios de estado por mantenimiento
 - `access_logs` — auditoría de accesos
 
-### Flujo de Mantenimiento
-1. Técnico crea mantenimiento (`borrador`)
-2. Sube fotos
-3. Envía a aprobación (`pendiente_aprobacion`)
+### Flujos de Mantenimiento
+
+**Orden de trabajo** (trabajo por ejecutar):
+1. Se crea con `es_orden=true` (manual, desde una solicitud, o generada por un plan preventivo) → `abierta`
+2. Supervisor asigna técnico (opcional); el técnico inicia → `en_progreso` (el activo pasa a `en_reparacion`)
+3. Técnico completa: solución, horas, tiempo de parada, repuestos → `pendiente_aprobacion` (activo vuelve a `operativo`)
 4. Supervisor aprueba (`aprobado`) o rechaza (`rechazado`)
-5. Si rechazado, técnico puede editar y reenviar
-6. Una vez aprobado, el registro es de solo lectura
+
+**Registro directo** (trabajo ya realizado):
+1. Técnico registra la intervención completa con fotos → `pendiente_aprobacion`
+2. Supervisor aprueba o rechaza; si rechaza, el técnico edita y reenvía
+3. Una vez aprobado, el registro es de solo lectura
+
+**Preventivos:** `plans.service.generateDueOrders()` corre al arrancar el servidor y cada `PLAN_CHECK_INTERVAL_MIN` minutos (default 360); también manualmente vía `POST /api/plans/generate`.
 
 ### Roles y Permisos
-- **tecnico:** Crear/ver sus propios mantenimientos, subir fotos
-- **supervisor:** Ver todos los mantenimientos, aprobar/rechazar, exportar reportes
+- **tecnico:** Crear/ver sus mantenimientos y los asignados a él, iniciar/completar órdenes, reportar solicitudes, ver activos/planes/catálogo
+- **supervisor:** Todo lo anterior + ver todo, asignar órdenes, aprobar/rechazar, gestionar planes/inventario/activos, convertir solicitudes, exportar reportes
 - **admin:** Acceso completo incluyendo gestión de usuarios
 
 ## Configuración de Entorno

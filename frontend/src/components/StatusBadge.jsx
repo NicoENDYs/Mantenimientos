@@ -1,4 +1,4 @@
-import { FileText, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { FileText, Clock, CheckCircle2, XCircle, CircleDot, Play } from 'lucide-react'
 
 /*
  * Los estados de mantenimiento son indicadores funcionales de dato:
@@ -6,10 +6,12 @@ import { FileText, Clock, CheckCircle2, XCircle } from 'lucide-react'
  * permite el uso de los tres colores semánticos simultáneamente.
  */
 const CONFIG = {
-  borrador:             { label: 'Borrador',   cls: 'bg-surface-2 text-muted',          Icon: FileText    },
-  pendiente_aprobacion: { label: 'Pendiente',  cls: 'bg-warning-soft text-warning-fg',  Icon: Clock       },
-  aprobado:             { label: 'Aprobado',   cls: 'bg-success-soft text-success-fg',  Icon: CheckCircle2 },
-  rechazado:            { label: 'Rechazado',  cls: 'bg-danger-soft text-danger-fg',    Icon: XCircle     },
+  borrador:             { label: 'Borrador',    cls: 'bg-surface-2 text-muted',          Icon: FileText     },
+  abierta:              { label: 'Abierta',     cls: 'bg-accent-soft text-accent-soft-fg', Icon: CircleDot  },
+  en_progreso:          { label: 'En progreso', cls: 'bg-accent-soft text-accent-soft-fg', Icon: Play       },
+  pendiente_aprobacion: { label: 'Pendiente',   cls: 'bg-warning-soft text-warning-fg',  Icon: Clock        },
+  aprobado:             { label: 'Aprobado',    cls: 'bg-success-soft text-success-fg',  Icon: CheckCircle2 },
+  rechazado:            { label: 'Rechazado',   cls: 'bg-danger-soft text-danger-fg',    Icon: XCircle      },
 }
 
 export default function StatusBadge({ estado }) {

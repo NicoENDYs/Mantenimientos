@@ -63,6 +63,9 @@ function buildApp(opts = {}) {
   fastify.register(require('./routes/users.routes'),         { prefix: '/api/users' })
   fastify.register(require('./routes/assets.routes'),        { prefix: '/api/assets' })
   fastify.register(require('./routes/maintenances.routes'),  { prefix: '/api/maintenances' })
+  fastify.register(require('./routes/plans.routes'),         { prefix: '/api/plans' })
+  fastify.register(require('./routes/parts.routes'),         { prefix: '/api/parts' })
+  fastify.register(require('./routes/requests.routes'),      { prefix: '/api/requests' })
   fastify.register(require('./routes/reports.routes'),       { prefix: '/api/reports' })
 
   // Health check

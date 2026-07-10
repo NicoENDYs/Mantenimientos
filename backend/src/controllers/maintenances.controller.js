@@ -11,15 +11,15 @@ async function detail(request, reply) {
   const item = await svc.findById(parseInt(request.params.id, 10))
   if (!item) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Mantenimiento no encontrado' })
 
-  // Técnico solo puede ver los suyos
-  if (request.user.rol === 'tecnico' && item.user_id !== request.user.id) {
+  // Técnico solo puede ver los suyos o los que tiene asignados
+  if (request.user.rol === 'tecnico' && item.user_id !== request.user.id && item.assigned_to !== request.user.id) {
     return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'No tienes acceso a este mantenimiento' })
   }
   return reply.send(item)
 }
 
 async function create(request, reply) {
-  const item = await svc.create(request.body, request.user.id)
+  const item = await svc.create(request.body, request.user)
   return reply.code(201).send(item)
 }
 
@@ -30,6 +30,25 @@ async function update(request, reply) {
     request.user.id,
     request.user.rol
   )
+  return reply.send(item)
+}
+
+async function assign(request, reply) {
+  const item = await svc.assign(
+    parseInt(request.params.id, 10),
+    request.body.user_id,
+    request.user.id
+  )
+  return reply.send(item)
+}
+
+async function start(request, reply) {
+  const item = await svc.start(parseInt(request.params.id, 10), request.user)
+  return reply.send(item)
+}
+
+async function complete(request, reply) {
+  const item = await svc.complete(parseInt(request.params.id, 10), request.body, request.user)
   return reply.send(item)
 }
 
@@ -88,7 +107,7 @@ async function deletePhoto(request, reply) {
 }
 
 async function notifications(request, reply) {
-  const items = await svc.getNotifications(request.user.id)
+  const items = await svc.getNotifications(request.user)
   return reply.send(items)
 }
 
@@ -97,4 +116,8 @@ async function stats(request, reply) {
   return reply.send(data)
 }
 
-module.exports = { list, detail, create, update, approve, reject, uploadPhotos, servePhoto, deletePhoto, notifications, stats }
+module.exports = {
+  list, detail, create, update, assign, start, complete,
+  approve, reject, uploadPhotos, servePhoto, deletePhoto,
+  notifications, stats,
+}

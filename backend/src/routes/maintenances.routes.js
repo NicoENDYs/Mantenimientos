@@ -4,6 +4,20 @@ const authenticate = require('../middlewares/authenticate')
 const authorize    = require('../middlewares/authorize')
 const ctrl         = require('../controllers/maintenances.controller')
 
+const ESTADOS    = ['borrador', 'abierta', 'en_progreso', 'pendiente_aprobacion', 'aprobado', 'rechazado']
+const TIPOS      = ['correctivo', 'preventivo', 'predictivo', 'mejora']
+const PRIORIDADES = ['baja', 'media', 'alta', 'critica']
+
+const PARTE_SCHEMA = {
+  type: 'object',
+  required: ['cantidad'],
+  properties: {
+    part_id:     { type: 'integer', minimum: 1 },
+    descripcion: { type: 'string' },
+    cantidad:    { type: 'integer', minimum: 1 },
+  },
+}
+
 async function maintenancesRoutes(fastify) {
   fastify.addHook('preHandler', authenticate)
 
@@ -15,7 +29,11 @@ async function maintenancesRoutes(fastify) {
         properties: {
           asset_code:  { type: 'string' },
           user_id:     { type: 'integer' },
-          estado:      { type: 'string', enum: ['borrador', 'pendiente_aprobacion', 'aprobado', 'rechazado'] },
+          assigned_to: { type: 'integer' },
+          estado:      { type: 'string', enum: ESTADOS },
+          tipo:        { type: 'string', enum: TIPOS },
+          prioridad:   { type: 'string', enum: PRIORIDADES },
+          vencidas:    { type: 'boolean' },
           fecha_desde: { type: 'string' },
           fecha_hasta: { type: 'string' },
           page:        { type: 'integer', minimum: 1, default: 1 },
@@ -36,29 +54,26 @@ async function maintenancesRoutes(fastify) {
   fastify.get('/:id', { handler: ctrl.detail })
 
   // POST /api/maintenances
+  // es_orden=true crea una orden de trabajo (estado abierta, sin solución aún);
+  // por defecto registra un trabajo ya realizado (pendiente de aprobación).
   fastify.post('/', {
     config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     schema: {
       body: {
         type: 'object',
-        required: ['assetCode', 'motivo', 'descripcion_problema', 'solucion'],
+        required: ['assetCode', 'motivo', 'descripcion_problema'],
         properties: {
           assetCode:            { type: 'string', minLength: 1 },
-          motivo:               { type: 'string', minLength: 1 },
-          descripcion_problema: { type: 'string', minLength: 1 },
-          solucion:             { type: 'string', minLength: 1 },
+          motivo:               { type: 'string', minLength: 1, maxLength: 500 },
+          descripcion_problema: { type: 'string', minLength: 1, maxLength: 5000 },
+          solucion:             { type: 'string', maxLength: 5000 },
           hubo_cambio:          { type: 'boolean' },
-          partes: {
-            type: 'array',
-            items: {
-              type: 'object',
-              required: ['descripcion', 'cantidad'],
-              properties: {
-                descripcion: { type: 'string' },
-                cantidad:    { type: 'integer', minimum: 1 },
-              },
-            },
-          },
+          tipo:                 { type: 'string', enum: TIPOS },
+          prioridad:            { type: 'string', enum: PRIORIDADES },
+          es_orden:             { type: 'boolean' },
+          assigned_to:          { type: 'integer', minimum: 1 },
+          fecha_programada:     { type: 'string', format: 'date' },
+          partes:               { type: 'array', items: PARTE_SCHEMA },
         },
       },
     },
@@ -77,21 +92,54 @@ async function maintenancesRoutes(fastify) {
           descripcion_problema: { type: 'string', minLength: 1, maxLength: 5000 },
           solucion:             { type: 'string', minLength: 1, maxLength: 5000 },
           hubo_cambio:          { type: 'boolean' },
-          partes: {
-            type: 'array',
-            items: {
-              type: 'object',
-              required: ['descripcion', 'cantidad'],
-              properties: {
-                descripcion: { type: 'string', minLength: 1 },
-                cantidad:    { type: 'integer', minimum: 1 },
-              },
-            },
-          },
+          tipo:                 { type: 'string', enum: TIPOS },
+          prioridad:            { type: 'string', enum: PRIORIDADES },
+          partes:               { type: 'array', items: PARTE_SCHEMA },
         },
       },
     },
     handler: ctrl.update,
+  })
+
+  // PATCH /api/maintenances/:id/assign — solo Supervisor/Admin
+  fastify.patch('/:id/assign', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    preHandler: authorize(['supervisor', 'admin']),
+    schema: {
+      body: {
+        type: 'object',
+        required: ['user_id'],
+        properties: {
+          user_id: { type: 'integer', minimum: 1 },
+        },
+      },
+    },
+    handler: ctrl.assign,
+  })
+
+  // PATCH /api/maintenances/:id/start — el técnico inicia el trabajo
+  fastify.patch('/:id/start', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    handler: ctrl.start,
+  })
+
+  // PATCH /api/maintenances/:id/complete — registra solución y tiempos, envía a aprobación
+  fastify.patch('/:id/complete', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    schema: {
+      body: {
+        type: 'object',
+        required: ['solucion'],
+        properties: {
+          solucion:            { type: 'string', minLength: 1, maxLength: 5000 },
+          horas_trabajo:       { type: 'number', minimum: 0 },
+          tiempo_parada_horas: { type: 'number', minimum: 0 },
+          hubo_cambio:         { type: 'boolean' },
+          partes:              { type: 'array', items: PARTE_SCHEMA },
+        },
+      },
+    },
+    handler: ctrl.complete,
   })
 
   // PATCH /api/maintenances/:id/approve — solo Supervisor/Admin

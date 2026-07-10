@@ -9,6 +9,11 @@ import NewMaintenancePage     from './pages/NewMaintenancePage'
 import MaintenanceListPage    from './pages/MaintenanceListPage'
 import MaintenanceDetailPage  from './pages/MaintenanceDetailPage'
 import EditMaintenancePage    from './pages/EditMaintenancePage'
+import RequestsPage           from './pages/RequestsPage'
+import AssetsPage             from './pages/AssetsPage'
+import AssetDetailPage        from './pages/AssetDetailPage'
+import PlansPage              from './pages/PlansPage'
+import PartsPage              from './pages/PartsPage'
 import ReportsPage            from './pages/ReportsPage'
 import UsersPage              from './pages/UsersPage'
 import ProfilePage            from './pages/ProfilePage'
@@ -74,6 +79,36 @@ export default function App() {
       <Route path="/maintenances/:id/edit" element={
         <ProtectedRoute>
           <EditMaintenancePage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/requests" element={
+        <ProtectedRoute>
+          <RequestsPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/assets" element={
+        <ProtectedRoute>
+          <AssetsPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/assets/:id" element={
+        <ProtectedRoute>
+          <AssetDetailPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/plans" element={
+        <ProtectedRoute roles={['supervisor', 'admin']}>
+          <PlansPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/parts" element={
+        <ProtectedRoute roles={['supervisor', 'admin']}>
+          <PartsPage />
         </ProtectedRoute>
       } />
 

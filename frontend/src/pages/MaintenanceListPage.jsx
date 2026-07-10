@@ -7,13 +7,18 @@ import StatusBadge from '../components/StatusBadge'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import Button, { buttonClasses } from '../components/Button'
+import PriorityBadge from '../components/PriorityBadge'
+import TypeBadge from '../components/TypeBadge'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axiosInstance'
-import { Plus, Check, X, ClipboardList, RefreshCw } from 'lucide-react'
+import { TIPO_OPCIONES, PRIORIDAD_OPCIONES } from '../constants'
+import { Plus, Check, X, ClipboardList, RefreshCw, CalendarClock, AlertTriangle } from 'lucide-react'
 
 const ESTADO_OPCIONES = [
   { value: '',                     label: 'Todos los estados' },
   { value: 'borrador',             label: 'Borrador' },
+  { value: 'abierta',              label: 'Abierta' },
+  { value: 'en_progreso',          label: 'En progreso' },
   { value: 'pendiente_aprobacion', label: 'Pendiente de aprobación' },
   { value: 'aprobado',             label: 'Aprobado' },
   { value: 'rechazado',            label: 'Rechazado' },
@@ -31,7 +36,12 @@ export default function MaintenanceListPage() {
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
   const [filters, setFilters]       = useState({
-    asset_code: '', estado: searchParams.get('estado') ?? '', fecha_desde: '', fecha_hasta: '',
+    asset_code: '',
+    estado: searchParams.get('estado') ?? '',
+    tipo: searchParams.get('tipo') ?? '',
+    prioridad: searchParams.get('prioridad') ?? '',
+    vencidas: searchParams.get('vencidas') === 'true',
+    fecha_desde: '', fecha_hasta: '',
   })
   const [rejectModal, setRejectModal]   = useState(null)
   const [rejectComment, setRejectComment] = useState('')
@@ -104,7 +114,7 @@ export default function MaintenanceListPage() {
       </div>
 
       {/* Filtros */}
-      <Card className="mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-4">
+      <Card className="mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted">Código de activo</span>
           <input
@@ -125,6 +135,28 @@ export default function MaintenanceListPage() {
           </select>
         </label>
         <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted">Tipo</span>
+          <select
+            value={filters.tipo}
+            onChange={(e) => handleFilterChange('tipo', e.target.value)}
+            className="input"
+          >
+            <option value="">Todos los tipos</option>
+            {TIPO_OPCIONES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted">Prioridad</span>
+          <select
+            value={filters.prioridad}
+            onChange={(e) => handleFilterChange('prioridad', e.target.value)}
+            className="input"
+          >
+            <option value="">Todas</option>
+            {PRIORIDAD_OPCIONES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted">Desde</span>
           <input
             type="date"
@@ -141,6 +173,15 @@ export default function MaintenanceListPage() {
             onChange={(e) => handleFilterChange('fecha_hasta', e.target.value)}
             className="input"
           />
+        </label>
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 lg:col-span-2">
+          <input
+            type="checkbox"
+            checked={filters.vencidas}
+            onChange={(e) => handleFilterChange('vencidas', e.target.checked)}
+            className="h-4 w-4 rounded accent-accent"
+          />
+          <span className="text-sm text-foreground">Solo órdenes vencidas</span>
         </label>
       </Card>
 
@@ -173,6 +214,14 @@ export default function MaintenanceListPage() {
               <div className="min-w-0 flex-1">
                 <div className="mb-1.5 flex flex-wrap items-center gap-2">
                   <StatusBadge estado={m.estado} />
+                  <TypeBadge tipo={m.tipo} />
+                  <PriorityBadge prioridad={m.prioridad} />
+                  {m.vencida && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger-fg">
+                      <AlertTriangle size={11} aria-hidden="true" />
+                      Vencida
+                    </span>
+                  )}
                   {m.pendiente_sync && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">
                       <RefreshCw size={11} aria-hidden="true" />
@@ -184,8 +233,14 @@ export default function MaintenanceListPage() {
                   {m.asset_codigo} — {m.asset_nombre || 'Sin nombre'}
                 </p>
                 <p className="truncate text-sm text-muted">{m.motivo}</p>
-                <p className="mt-1 text-xs text-faint">
-                  {m.tecnico_nombre} · {new Date(m.created_at).toLocaleDateString('es-CO')}
+                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-faint">
+                  <span>{m.asignado_nombre || m.tecnico_nombre} · {new Date(m.created_at).toLocaleDateString('es-CO')}</span>
+                  {m.fecha_programada && (
+                    <span className="inline-flex items-center gap-1">
+                      <CalendarClock size={11} aria-hidden="true" />
+                      Programada: {new Date(m.fecha_programada).toLocaleDateString('es-CO')}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
